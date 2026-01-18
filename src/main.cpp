@@ -2,12 +2,16 @@
 #include "config.h"
 #include "web_server.h"
 #include "status_led.h"
+#include "joystick.h"
 
 void setup() {
   // Initialize Serial for debugging
   Serial.begin(115200);
   delay(1000);
   Serial.println("\n\n=== ESP32 Heli Joystick ===");
+  
+  // Initialize USB HID Joystick first
+  initJoystick();
   
   // Initialize status LED
   initStatusLED();
@@ -35,6 +39,9 @@ void setup() {
 }
 
 void loop() {
+  // Update joystick with demo animation
+  updateJoystickDemo();
+  
   // Handle web server and OTA
   handleWebServer();
   

@@ -1,9 +1,14 @@
 # ESP32 Heli Joystick
 
-ESP32-S3 based helicopter joystick controller with WiFi and OTA support.
+ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
 
 ## Features
 
+- **USB HID Joystick** - Native USB joystick with 3 axes and 32 buttons
+  - Device name: `esp-heli-v1`
+  - 3 axes: Cyclic X, Cyclic Y, Collective
+  - 32 programmable buttons
+  - Smooth demo animation included
 - **RGB LED Status Indicator** - WS2812 RGB LED on GPIO 48
 - **Optional WiFi Connectivity** - Connect to WiFi for web interface and OTA updates
 - **OTA Updates** - Upload new firmware over WiFi without USB cable
@@ -12,9 +17,52 @@ ESP32-S3 based helicopter joystick controller with WiFi and OTA support.
 ## Hardware
 
 - **Board**: ESP32-S3 (YD-ESP32-S3 or compatible)
+- **USB**: Native USB HID support (no external USB-to-Serial chip needed)
 - **RGB LED**: WS2812 on GPIO 48
 - **Flash**: 16MB
 - **PSRAM**: Disabled (not required)
+
+## USB HID Joystick
+
+The ESP32-S3 appears as a USB HID joystick device when connected to a computer.
+
+### Specifications
+
+- **Device Name**: esp-heli-v1
+- **Manufacturer**: ESP32
+- **Axes**: 3 (8-bit signed, range: -127 to 127)
+  - **Axis 0**: Cyclic X (left/right)
+  - **Axis 1**: Cyclic Y (forward/back)
+  - **Axis 2**: Collective (up/down)
+- **Buttons**: 32 (0-31)
+
+### Testing the Joystick
+
+**Windows:**
+1. Press `Win+R`, type `joy.cpl`, press Enter
+2. The device "esp-heli-v1" should appear in the list
+3. Select it and click "Properties" to see live axis movements and button states
+
+**Linux:**
+```bash
+jstest /dev/input/js0
+```
+
+**macOS:**
+Use a joystick testing application from the App Store
+
+### Important: USB CDC Configuration
+
+⚠️ **USB CDC (Serial) is disabled** to allow HID joystick functionality. This means:
+- Serial debug output is **not available** via USB
+- You cannot use the USB port for serial monitoring
+- OTA updates via WiFi are the primary method for uploading new firmware
+
+If you need serial debugging, you can temporarily enable USB CDC by changing in `platformio.ini`:
+```ini
+-DARDUINO_USB_CDC_ON_BOOT=0  →  -DARDUINO_USB_CDC_ON_BOOT=1
+```
+**Note**: Enabling CDC will disable the HID joystick functionality.
 
 ## Configuration
 
@@ -128,23 +176,28 @@ esp32-heli-joystick/
 ├── include/
 │   ├── config.h              # Main configuration file
 │   ├── secrets.h             # WiFi credentials (gitignored)
-│   └── secrets.h.template    # Template for secrets.h
+│   ├── secrets.h.template    # Template for secrets.h
+│   ├── joystick.h            # USB HID joystick interface
+│   ├── status_led.h          # RGB LED status indicator interface
+│   └── web_server.h          # Web server interface
 ├── src/
 │   ├── main.cpp              # Main application code
-│   ├── web_server.h          # Web server header
-│   └── web_server.cpp        # Web server implementation
+│   ├── joystick.cpp          # USB HID joystick implementation
+│   ├── status_led.cpp        # RGB LED status indicator
+│   ├── web_server.cpp        # Web server and WiFi implementation
 ├── platformio.ini            # PlatformIO configuration
 └── README.md                 # This file
 ```
 
 ## Dependencies
 
-- Adafruit NeoPixel @ ^1.12.0
-- robtillaart/AS5600 @ ^0.6.1
-- WiFi (built-in)
-- WebServer (built-in)
-- ESPmDNS (built-in)
-- ArduinoOTA (built-in)
+- **Adafruit NeoPixel** @ ^1.12.0 - RGB LED control
+- **robtillaart/AS5600** @ ^0.6.1 - Magnetic encoder sensor library
+- **schnoog/Joystick_ESP32S2** @ ^0.9.4 - USB HID joystick support for ESP32-S3
+- **WiFi** (built-in) - WiFi connectivity
+- **WebServer** (built-in) - HTTP web server
+- **ESPmDNS** (built-in) - mDNS responder
+- **ArduinoOTA** (built-in) - Over-the-air updates
 
 ## Troubleshooting
 
