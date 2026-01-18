@@ -136,14 +136,6 @@ void updateJoystickDemo() {
         setJoystickAxis(AXIS_CYCLIC_Y, cyclicY);
         setJoystickAxis(AXIS_COLLECTIVE, collective);
         
-        // Demo: Toggle some buttons in a pattern
-        static uint8_t buttonPattern = 0;
-        buttonPattern++;
-        
-        for (uint8_t i = 0; i < 8; i++) {
-            setJoystickButton(i, (buttonPattern & (1 << i)) != 0);
-        }
-        
         // Send updated state
         updateJoystick();
     }

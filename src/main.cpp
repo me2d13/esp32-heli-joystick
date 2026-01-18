@@ -3,6 +3,7 @@
 #include "web_server.h"
 #include "status_led.h"
 #include "joystick.h"
+#include "buttons.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -12,6 +13,9 @@ void setup() {
   
   // Initialize USB HID Joystick first
   initJoystick();
+  
+  // Initialize button handling
+  initButtons();
   
   // Initialize status LED
   initStatusLED();
@@ -39,6 +43,9 @@ void setup() {
 }
 
 void loop() {
+  // Handle button scanning and updates
+  handleButtons();
+  
   // Update joystick with demo animation
   updateJoystickDemo();
   
