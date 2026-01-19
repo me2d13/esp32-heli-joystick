@@ -12,7 +12,7 @@ ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
 - **RGB LED Status Indicator** - WS2812 RGB LED on GPIO 48
 - **Optional WiFi Connectivity** - Connect to WiFi for web interface and OTA updates
 - **OTA Updates** - Upload new firmware over WiFi without USB cable
-- **Web Interface** - Simple web dashboard (more features coming soon)
+- **Web Interface** - Real-time dashboard with WebSocket-powered live updates
 
 ## Hardware
 
@@ -218,6 +218,16 @@ Once connected to WiFi, open your browser and navigate to:
 - `http://<IP_ADDRESS>/` - Main dashboard
 - `http://esp32-heli-joy.local/` - mDNS address (may not work on all networks)
 
+The web dashboard provides **real-time monitoring** of the joystick state via WebSocket:
+
+- **Axes Display** - Visual bars showing Cyclic X, Cyclic Y, and Collective positions (-127 to +127)
+- **Raw Sensor Values** - Current raw readings from AS5600 sensors (0-4095)
+- **Button Grid** - All 32 buttons displayed with pressed/released state
+- **Connection Status** - WebSocket connection state and cyclic data validity
+- **Update Rate** - Current refresh rate (typically 20 Hz)
+
+The dashboard automatically reconnects if the WebSocket connection is lost.
+
 ### OTA Updates
 
 The default OTA password is `admin`. You can change this in `src/web_server.cpp`:
@@ -254,6 +264,8 @@ esp32-heli-joystick/
 - **Adafruit NeoPixel** @ ^1.12.0 - RGB LED control
 - **robtillaart/AS5600** @ ^0.6.1 - Magnetic encoder sensor library
 - **schnoog/Joystick_ESP32S2** @ ^0.9.4 - USB HID joystick support for ESP32-S3
+- **links2004/WebSockets** @ ^2.4.1 - WebSocket server for real-time dashboard
+- **bblanchon/ArduinoJson** @ ^6.21.3 - JSON serialization for WebSocket data
 - **WiFi** (built-in) - WiFi connectivity
 - **WebServer** (built-in) - HTTP web server
 - **ESPmDNS** (built-in) - mDNS responder
