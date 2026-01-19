@@ -67,6 +67,30 @@
 #define PIN_CYCLIC_Y_STEP 39
 #define PIN_CYCLIC_Y_DIR 38
 
+// ----------------------------------------------------------------------------
+// Cyclic Axis Calibration
+// ----------------------------------------------------------------------------
+// These values define the sensor range for each axis.
+// Sensor raw values are 0-4095, but the stick movement doesn't cover 
+// the full range. These min/max values are used to map the sensor 
+// readings to the joystick axis range (-127 to 127).
+//
+// To calibrate: Move the stick to its physical limits and note the 
+// sensor values, then set these constants accordingly.
+
+// Cyclic X axis (left/right) calibration
+#define CYCLIC_X_SENSOR_MIN   500    // Sensor value at full left position
+#define CYCLIC_X_SENSOR_MAX   3500   // Sensor value at full right position
+#define CYCLIC_X_INVERT       false  // Set to true to invert axis direction
+
+// Cyclic Y axis (forward/back) calibration
+#define CYCLIC_Y_SENSOR_MIN   500    // Sensor value at full back position
+#define CYCLIC_Y_SENSOR_MAX   3500   // Sensor value at full forward position
+#define CYCLIC_Y_INVERT       false  // Set to true to invert axis direction
+
+// Serial protocol settings (for receiving data from AS5600 sensor board)
+#define CYCLIC_SERIAL_BAUD    115200 // Baud rate for cyclic sensor data
+
 /*
                                                                               
                             ┌─────────────────┐                               

@@ -8,7 +8,7 @@ ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
   - Device name: `esp-heli-v1`
   - 3 axes: Cyclic X, Cyclic Y, Collective
   - 32 programmable buttons
-  - Smooth demo animation included
+- **Cyclic Axis via External Sensor Board** - Receives position data from AS5600 magnetic encoders via UART
 - **RGB LED Status Indicator** - WS2812 RGB LED on GPIO 48
 - **Optional WiFi Connectivity** - Connect to WiFi for web interface and OTA updates
 - **OTA Updates** - Upload new firmware over WiFi without USB cable
@@ -63,6 +63,62 @@ If you need serial debugging, you can temporarily enable USB CDC by changing in 
 -DARDUINO_USB_CDC_ON_BOOT=0  →  -DARDUINO_USB_CDC_ON_BOOT=1
 ```
 **Note**: Enabling CDC will disable the HID joystick functionality.
+
+## Cyclic Axis (Hall Sensors)
+
+The cyclic X and Y axes are read from an external ESP32 board equipped with two AS5600 magnetic rotary encoders. This sensor board continuously transmits position data over a UART serial connection.
+
+### Sensor Board
+
+The sensor data comes from a separate ESP32-S3 running the [esp32-as5600](https://github.com/me2d13/esp32-as5600) firmware. This board:
+- Reads two AS5600 magnetic encoders (one for each axis)
+- Transmits 12-bit angle data (0-4095) via UART at 115200 baud
+- Uses a binary protocol with checksums for reliable data transfer
+
+### Wiring
+
+Connect the sensor board to this joystick controller:
+
+| Sensor Board | Joystick Controller |
+|--------------|---------------------|
+| TX (GPIO 43) | RX (GPIO 13)        |
+| GND          | GND                 |
+
+### Binary Protocol
+
+The sensor board sends 7-byte packets:
+
+```
+Byte 0:     Start Marker (0xAA)
+Byte 1-2:   Sensor 1 Angle (uint16_t, little-endian, 0-4095) → Cyclic X
+Byte 3-4:   Sensor 2 Angle (uint16_t, little-endian, 0-4095) → Cyclic Y
+Byte 5:     Checksum (XOR of bytes 1-4)
+Byte 6:     End Marker (0x55)
+```
+
+### Calibration
+
+The physical stick movement typically doesn't cover the full 0-4095 sensor range. Calibration constants in `include/config.h` define the actual range for each axis:
+
+```cpp
+// Cyclic X axis (left/right) calibration
+#define CYCLIC_X_SENSOR_MIN   500    // Sensor value at full left
+#define CYCLIC_X_SENSOR_MAX   3500   // Sensor value at full right
+#define CYCLIC_X_INVERT       false  // Invert axis direction
+
+// Cyclic Y axis (forward/back) calibration
+#define CYCLIC_Y_SENSOR_MIN   500    // Sensor value at full back
+#define CYCLIC_Y_SENSOR_MAX   3500   // Sensor value at full forward
+#define CYCLIC_Y_INVERT       false  // Invert axis direction
+```
+
+**To calibrate:**
+1. Move the cyclic stick to each extreme position
+2. Note the raw sensor values (via web interface or debug output)
+3. Update the MIN/MAX values in `config.h`
+4. Set `INVERT` to `true` if the axis moves opposite to expected
+
+The sensor values are mapped linearly from the calibration range to the joystick axis range (-127 to 127).
 
 ## Configuration
 
@@ -177,14 +233,18 @@ esp32-heli-joystick/
 │   ├── config.h              # Main configuration file
 │   ├── secrets.h             # WiFi credentials (gitignored)
 │   ├── secrets.h.template    # Template for secrets.h
+│   ├── buttons.h             # Button handling interface
+│   ├── cyclic_serial.h       # Cyclic sensor serial receiver interface
 │   ├── joystick.h            # USB HID joystick interface
 │   ├── status_led.h          # RGB LED status indicator interface
 │   └── web_server.h          # Web server interface
 ├── src/
 │   ├── main.cpp              # Main application code
+│   ├── buttons.cpp           # Button scanning and handling
+│   ├── cyclic_serial.cpp     # Cyclic sensor data receiver (AS5600 protocol)
 │   ├── joystick.cpp          # USB HID joystick implementation
 │   ├── status_led.cpp        # RGB LED status indicator
-│   ├── web_server.cpp        # Web server and WiFi implementation
+│   └── web_server.cpp        # Web server and WiFi implementation
 ├── platformio.ini            # PlatformIO configuration
 └── README.md                 # This file
 ```
@@ -219,6 +279,21 @@ esp32-heli-joystick/
 - Verify GPIO 48 is correct for your board
 - Check the LED brightness setting in config.h
 - Some boards may have different RGB LED configurations
+
+### Cyclic axes not responding
+
+- Check the wiring between sensor board and joystick controller (TX→RX, GND→GND)
+- Verify the sensor board is powered and running
+- Ensure baud rate matches (115200 by default)
+- Check that the AS5600 sensors are detecting the magnets on the sensor board
+
+### Cyclic axes moving in wrong direction
+
+- Set `CYCLIC_X_INVERT` or `CYCLIC_Y_INVERT` to `true` in `config.h`
+
+### Cyclic axes not reaching full range
+
+- Calibrate the sensor range by updating `CYCLIC_X_SENSOR_MIN/MAX` and `CYCLIC_Y_SENSOR_MIN/MAX` in `config.h`
 
 ## License
 

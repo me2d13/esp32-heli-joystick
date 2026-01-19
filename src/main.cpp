@@ -4,6 +4,7 @@
 #include "status_led.h"
 #include "joystick.h"
 #include "buttons.h"
+#include "cyclic_serial.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -16,6 +17,9 @@ void setup() {
   
   // Initialize button handling
   initButtons();
+  
+  // Initialize cyclic serial receiver (for AS5600 sensor data)
+  initCyclicSerial();
   
   // Initialize status LED
   initStatusLED();
@@ -46,8 +50,8 @@ void loop() {
   // Handle button scanning and updates
   handleButtons();
   
-  // Update joystick with demo animation
-  updateJoystickDemo();
+  // Process incoming cyclic sensor data and update joystick
+  handleCyclicSerial();
   
   // Handle web server and OTA
   handleWebServer();
