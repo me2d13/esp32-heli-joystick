@@ -4,6 +4,7 @@
 #include "status_led.h"
 #include "joystick.h"
 #include "cyclic_serial.h"
+#include "collective.h"
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -177,7 +178,7 @@ const char* htmlPage = R"rawliteral(
         }
         .raw-values {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
             margin-top: 16px;
             padding-top: 16px;
@@ -339,6 +340,7 @@ const char* htmlPage = R"rawliteral(
             <div class="raw-values">
                 <div class="raw-value">Raw X: <span id="rawX">--</span></div>
                 <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
+                <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
             </div>
         </div>
         
@@ -434,6 +436,7 @@ const char* htmlPage = R"rawliteral(
                     // Update raw values
                     document.getElementById('rawX').textContent = data.rawX;
                     document.getElementById('rawY').textContent = data.rawY;
+                    document.getElementById('rawZ').textContent = data.rawZ;
                     
                     // Update cyclic status
                     const cyclicStatus = document.getElementById('cyclicStatus');
@@ -569,6 +572,7 @@ void broadcastJoystickState() {
     // Raw sensor values
     doc["rawX"] = getCyclicXRaw();
     doc["rawY"] = getCyclicYRaw();
+    doc["rawZ"] = getCollectiveRaw();
     doc["cyclicValid"] = isCyclicDataValid();
     
     // Buttons as bitmask

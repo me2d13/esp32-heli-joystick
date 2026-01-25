@@ -90,6 +90,13 @@
 #define CYCLIC_Y_SENSOR_MAX   2500   // Sensor value at full forward position
 #define CYCLIC_Y_INVERT       false  // Set to true to invert axis direction
 
+// Collective axis (up/down) calibration
+// Note: This axis wraps around at the ADC boundary (0/4095)
+// Physical range: 1370 (down) → 0 → 4095 → 1500 (up)
+#define COLLECTIVE_SENSOR_MIN 1370   // Sensor value at full down position
+#define COLLECTIVE_SENSOR_MAX 1500   // Sensor value at full up position
+#define COLLECTIVE_INVERT     true   // Set to true to invert axis direction
+
 // Serial protocol settings (for receiving data from AS5600 sensor board)
 #define CYCLIC_SERIAL_BAUD    115200 // Baud rate for cyclic sensor data
 

@@ -6,6 +6,7 @@
 #include "joystick.h"
 #include "buttons.h"
 #include "cyclic_serial.h"
+#include "collective.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -25,6 +26,9 @@ void setup() {
   
   // Initialize cyclic serial receiver (for AS5600 sensor data)
   initCyclicSerial();
+  
+  // Initialize collective axis (analog input)
+  initCollective();
   
   // Initialize status LED
   initStatusLED();
@@ -57,6 +61,9 @@ void loop() {
   
   // Process incoming cyclic sensor data and update joystick
   handleCyclicSerial();
+  
+  // Read collective axis and update joystick
+  handleCollective();
   
   // Handle web server and OTA
   handleWebServer();
