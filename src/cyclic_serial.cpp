@@ -23,7 +23,7 @@ static unsigned long lastValidPacketTime = 0;
 // Forward declarations
 static bool validatePacket(const uint8_t* packet);
 static void processPacket(const uint8_t* packet);
-static int8_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert);
+static int16_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert);
 
 void initCyclicSerial() {
     // Initialize Serial1 with custom pins
@@ -110,8 +110,8 @@ static void processPacket(const uint8_t* packet) {
     lastValidPacketTime = millis();
     
     // Map sensor values to joystick axis range
-    int8_t axisX = mapSensorToAxis(sensor1, CYCLIC_X_SENSOR_MIN, CYCLIC_X_SENSOR_MAX, CYCLIC_X_INVERT);
-    int8_t axisY = mapSensorToAxis(sensor2, CYCLIC_Y_SENSOR_MIN, CYCLIC_Y_SENSOR_MAX, CYCLIC_Y_INVERT);
+    int16_t axisX = mapSensorToAxis(sensor1, CYCLIC_X_SENSOR_MIN, CYCLIC_X_SENSOR_MAX, CYCLIC_X_INVERT);
+    int16_t axisY = mapSensorToAxis(sensor2, CYCLIC_Y_SENSOR_MIN, CYCLIC_Y_SENSOR_MAX, CYCLIC_Y_INVERT);
     
     // Update joystick
     setJoystickAxis(AXIS_CYCLIC_X, axisX);
@@ -119,7 +119,7 @@ static void processPacket(const uint8_t* packet) {
     updateJoystick();
 }
 
-static int8_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert) {
+static int16_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert) {
     // Clamp sensor value to calibration range
     if (sensorValue < sensorMin) {
         sensorValue = sensorMin;
@@ -128,7 +128,7 @@ static int8_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t
         sensorValue = sensorMax;
     }
     
-    // Map from sensor range to joystick axis range (-127 to 127)
+    // Map from sensor range to joystick axis range (0 to 10000)
     // Using long to avoid overflow during calculation
     long mapped = (long)(sensorValue - sensorMin) * (AXIS_MAX - AXIS_MIN) / (sensorMax - sensorMin) + AXIS_MIN;
     
@@ -137,7 +137,7 @@ static int8_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t
         mapped = AXIS_MAX - (mapped - AXIS_MIN);
     }
     
-    return (int8_t)mapped;
+    return (int16_t)mapped;
 }
 
 uint16_t getCyclicXRaw() {

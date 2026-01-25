@@ -12,16 +12,16 @@
 #define AXIS_CYCLIC_Y 1     // Cyclic forward/back
 #define AXIS_COLLECTIVE 2   // Collective up/down
 
-// Axis range: -127 to 127 (signed 8-bit)
-#define AXIS_MIN -127
-#define AXIS_MAX 127
-#define AXIS_CENTER 0
+// Axis range: 0 to 10000 (16-bit precision for full sensor resolution)
+#define AXIS_MIN 0
+#define AXIS_MAX 10000
+#define AXIS_CENTER 5000
 
 // Initialize the USB HID joystick
 void initJoystick();
 
-// Set axis value (-127 to 127)
-void setJoystickAxis(uint8_t axis, int8_t value);
+// Set axis value (0 to 10000)
+void setJoystickAxis(uint8_t axis, int16_t value);
 
 // Set button state (0-31)
 void setJoystickButton(uint8_t button, bool pressed);
@@ -30,7 +30,7 @@ void setJoystickButton(uint8_t button, bool pressed);
 void updateJoystick();
 
 // Get current axis value
-int8_t getJoystickAxis(uint8_t axis);
+int16_t getJoystickAxis(uint8_t axis);
 
 // Get current button state
 bool getJoystickButton(uint8_t button);

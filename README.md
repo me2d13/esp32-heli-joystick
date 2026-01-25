@@ -30,7 +30,7 @@ The ESP32-S3 appears as a USB HID joystick device when connected to a computer.
 
 - **Device Name**: esp-heli-v1
 - **Manufacturer**: ESP32
-- **Axes**: 3 (8-bit signed, range: -127 to 127)
+- **Axes**: 3 (16-bit precision, range: 0 to 10000)
   - **Axis 0**: Cyclic X (left/right)
   - **Axis 1**: Cyclic Y (forward/back)
   - **Axis 2**: Collective (up/down)
@@ -118,7 +118,41 @@ The physical stick movement typically doesn't cover the full 0-4095 sensor range
 3. Update the MIN/MAX values in `config.h`
 4. Set `INVERT` to `true` if the axis moves opposite to expected
 
-The sensor values are mapped linearly from the calibration range to the joystick axis range (-127 to 127).
+The sensor values are mapped linearly from the calibration range to the joystick axis range (0 to 10000).
+
+## Collective Axis (Analog Input)
+
+The collective axis is read from an analog voltage input (0-3.3V) on GPIO 11. This is a temporary solution until the I2C collective sensor is wired.
+
+### Hardware
+
+- **Input Pin**: GPIO 11 (PIN_COL_I2C_D)
+- **Input Type**: Analog voltage (0-3.3V)
+- **ADC Resolution**: 12-bit (0-4095)
+
+### Calibration
+
+The collective axis supports calibration with overflow handling for cases where the sensor range wraps around the ADC boundary (0/4095). Configuration is in `include/config.h`:
+
+```cpp
+// Collective axis (up/down) calibration
+// Note: This axis wraps around at the ADC boundary (0/4095)
+// Physical range: 1370 (down) → 4095 → 0 → 1500 (up)
+#define COLLECTIVE_SENSOR_MIN 1370   // Sensor value at full down position
+#define COLLECTIVE_SENSOR_MAX 1500   // Sensor value at full up position
+#define COLLECTIVE_INVERT     true   // Set to true to invert axis direction
+```
+
+**Overflow Handling:**
+
+The collective axis implementation automatically detects and handles wrap-around at the ADC boundary. When the physical range crosses from 4095 to 0 (or vice versa), the values are normalized into a continuous range before mapping to the joystick axis.
+
+**To calibrate:**
+1. Move the collective to full down position and note the raw value (visible on web interface)
+2. Move to full up position and note the raw value
+3. Update `COLLECTIVE_SENSOR_MIN` and `COLLECTIVE_SENSOR_MAX` in `config.h`
+4. Set `COLLECTIVE_INVERT` to `true` if the axis moves opposite to expected
+5. Values outside the calibration range are automatically clamped to the nearest edge
 
 ## Configuration
 
@@ -220,8 +254,8 @@ Once connected to WiFi, open your browser and navigate to:
 
 The web dashboard provides **real-time monitoring** of the joystick state via WebSocket:
 
-- **Axes Display** - Visual bars showing Cyclic X, Cyclic Y, and Collective positions (-127 to +127)
-- **Raw Sensor Values** - Current raw readings from AS5600 sensors (0-4095)
+- **Axes Display** - Visual bars showing Cyclic X, Cyclic Y, and Collective positions (0 to 10000, center at 5000)
+- **Raw Sensor Values** - Current raw readings from AS5600 sensors (0-4095) and collective analog input (0-4095)
 - **Button Grid** - All 32 buttons displayed with pressed/released state
 - **Connection Status** - WebSocket connection state and cyclic data validity
 - **Update Rate** - Current refresh rate (typically 20 Hz)
@@ -244,6 +278,7 @@ esp32-heli-joystick/
 │   ├── secrets.h             # WiFi credentials (gitignored)
 │   ├── secrets.h.template    # Template for secrets.h
 │   ├── buttons.h             # Button handling interface
+│   ├── collective.h          # Collective axis interface
 │   ├── cyclic_serial.h       # Cyclic sensor serial receiver interface
 │   ├── joystick.h            # USB HID joystick interface
 │   ├── status_led.h          # RGB LED status indicator interface
@@ -251,6 +286,7 @@ esp32-heli-joystick/
 ├── src/
 │   ├── main.cpp              # Main application code
 │   ├── buttons.cpp           # Button scanning and handling
+│   ├── collective.cpp        # Collective axis analog input with overflow handling
 │   ├── cyclic_serial.cpp     # Cyclic sensor data receiver (AS5600 protocol)
 │   ├── joystick.cpp          # USB HID joystick implementation
 │   ├── status_led.cpp        # RGB LED status indicator

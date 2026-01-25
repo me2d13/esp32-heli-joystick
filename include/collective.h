@@ -13,7 +13,7 @@ void handleCollective();
 // Get the last raw ADC reading (0-4095 for ESP32)
 uint16_t getCollectiveRaw();
 
-// Get the last mapped axis value (-127 to 127)
-int8_t getCollectiveAxis();
+// Get the last mapped axis value (0 to 10000)
+int16_t getCollectiveAxis();
 
 #endif // COLLECTIVE_H

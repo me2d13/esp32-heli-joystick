@@ -26,7 +26,7 @@ Joystick_ Joystick(
 );
 
 // State tracking
-static int8_t axisValues[JOYSTICK_AXIS_COUNT] = {0, 0, 0};
+static int16_t axisValues[JOYSTICK_AXIS_COUNT] = {5000, 5000, 5000};
 static uint32_t buttonStates = 0;
 
 // Smooth animation variables for demo
@@ -39,7 +39,7 @@ void initJoystick() {
     USB.manufacturerName("ESP32");
     USB.begin();
     
-    // Set axis ranges (-127 to 127)
+    // Set axis ranges (0 to 10000 for 16-bit precision)
     Joystick.setXAxisRange(AXIS_MIN, AXIS_MAX);
     Joystick.setYAxisRange(AXIS_MIN, AXIS_MAX);
     Joystick.setZAxisRange(AXIS_MIN, AXIS_MAX);
@@ -51,7 +51,7 @@ void initJoystick() {
     LOG_INFO("3 axes (Cyclic X, Cyclic Y, Collective) + 32 buttons");
 }
 
-void setJoystickAxis(uint8_t axis, int8_t value) {
+void setJoystickAxis(uint8_t axis, int16_t value) {
     if (axis >= JOYSTICK_AXIS_COUNT) return;
     
     // Clamp value to valid range
@@ -94,7 +94,7 @@ void updateJoystick() {
     Joystick.sendState();
 }
 
-int8_t getJoystickAxis(uint8_t axis) {
+int16_t getJoystickAxis(uint8_t axis) {
     if (axis < JOYSTICK_AXIS_COUNT) {
         return axisValues[axis];
     }
@@ -124,13 +124,13 @@ void updateJoystickDemo() {
         
         // Generate smooth sine wave movements
         // Cyclic X: slow sine wave
-        int8_t cyclicX = (int8_t)(sin(animationPhase) * 100.0f);
+        int16_t cyclicX = (int16_t)(sin(animationPhase) * 4000.0f + 5000.0f);
         
         // Cyclic Y: slower sine wave with phase offset
-        int8_t cyclicY = (int8_t)(sin(animationPhase * 0.7f + PI/4) * 100.0f);
+        int16_t cyclicY = (int16_t)(sin(animationPhase * 0.7f + PI/4) * 4000.0f + 5000.0f);
         
         // Collective: very slow sine wave
-        int8_t collective = (int8_t)(sin(animationPhase * 0.5f) * 80.0f);
+        int16_t collective = (int16_t)(sin(animationPhase * 0.5f) * 3000.0f + 5000.0f);
         
         // Update axes
         setJoystickAxis(AXIS_CYCLIC_X, cyclicX);

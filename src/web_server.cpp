@@ -381,10 +381,13 @@ const char* htmlPage = R"rawliteral(
         
         function updateAxisBar(barId, value) {
             const bar = document.getElementById(barId);
-            const percent = Math.abs(value) / 127 * 50;
+            // New range: 0-10000, center at 5000
+            const center = 5000;
+            const offset = value - center;
+            const percent = Math.abs(offset) / center * 50;
             
             bar.className = 'axis-bar';
-            if (value >= 0) {
+            if (offset >= 0) {
                 bar.classList.add('positive');
                 bar.style.width = percent + '%';
                 bar.style.marginLeft = '50%';

@@ -7,7 +7,7 @@
 static uint16_t collectiveRaw = 0;
 
 // Last mapped axis value
-static int8_t collectiveAxis = 0;
+static int16_t collectiveAxis = 5000;
 
 void initCollective() {
     // Configure the analog input pin
@@ -72,15 +72,15 @@ void handleCollective() {
         normalizedValue = normalizedMax;
     }
     
-    // Map from normalized range to joystick axis range (-127 to 127)
+    // Map from normalized range to joystick axis range (0 to 10000)
     int32_t inputOffset = normalizedValue - normalizedMin;
     int32_t inputRange = normalizedMax - normalizedMin;
-    int32_t outputRange = AXIS_MAX - AXIS_MIN;  // 254
+    int32_t outputRange = AXIS_MAX - AXIS_MIN;  // 10000
     
     // Multiply first, then divide to preserve precision
     long mapped = ((long)inputOffset * (long)outputRange) / (long)inputRange + AXIS_MIN;
     
-    collectiveAxis = (int8_t)mapped;
+    collectiveAxis = (int16_t)mapped;
     
     // Apply inversion if needed
     if (COLLECTIVE_INVERT) {
@@ -96,6 +96,6 @@ uint16_t getCollectiveRaw() {
     return collectiveRaw;
 }
 
-int8_t getCollectiveAxis() {
+int16_t getCollectiveAxis() {
     return collectiveAxis;
 }
