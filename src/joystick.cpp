@@ -1,6 +1,7 @@
 #include "joystick.h"
 #include <Joystick_ESP32S2.h>
 #include "USB.h"
+#include "logger.h"
 
 // Create joystick instance
 // Parameters: (hidReportId, joystickType, buttonCount, hatSwitchCount, 
@@ -46,8 +47,8 @@ void initJoystick() {
     // Begin joystick with manual send mode (false = disable AutoSendState)
     Joystick.begin(false);
     
-    Serial.println("USB HID Joystick initialized: esp-heli-v1");
-    Serial.println("3 axes (Cyclic X, Cyclic Y, Collective) + 32 buttons");
+    LOG_INFO("USB HID Joystick initialized: esp-heli-v1");
+    LOG_INFO("3 axes (Cyclic X, Cyclic Y, Collective) + 32 buttons");
 }
 
 void setJoystickAxis(uint8_t axis, int8_t value) {

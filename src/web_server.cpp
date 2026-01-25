@@ -1,5 +1,6 @@
 #include "web_server.h"
 #include "config.h"
+#include "logger.h"
 #include "status_led.h"
 #include "joystick.h"
 #include "cyclic_serial.h"
@@ -218,6 +219,53 @@ const char* htmlPage = R"rawliteral(
             font-size: 0.85em;
             margin-top: 30px;
         }
+        .logs-section {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .log-entry {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            padding: 6px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            border-left: 3px solid;
+            background: rgba(255,255,255,0.03);
+        }
+        .log-entry.info {
+            border-left-color: #64ffda;
+        }
+        .log-entry.warn {
+            border-left-color: #ffd700;
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .log-entry.error {
+            border-left-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.05);
+        }
+        .log-timestamp {
+            color: #8892b0;
+            margin-right: 10px;
+        }
+        .log-level {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .log-level.info {
+            color: #64ffda;
+        }
+        .log-level.warn {
+            color: #ffd700;
+        }
+        .log-level.error {
+            color: #ff6b6b;
+        }
+        .log-message {
+            color: #e8e8e8;
+        }
         @media (max-width: 600px) {
             .buttons-grid {
                 grid-template-columns: repeat(4, 1fr);
@@ -297,6 +345,13 @@ const char* htmlPage = R"rawliteral(
         <div class="card">
             <div class="card-title">🔘 Buttons (32)</div>
             <div class="buttons-grid" id="buttonsGrid">
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📋 System Logs</div>
+            <div class="logs-section" id="logsContainer">
+                <div class="log-entry">Loading logs...</div>
             </div>
         </div>
         
@@ -413,8 +468,45 @@ const char* htmlPage = R"rawliteral(
             };
         }
         
-        // Start connection
+        // Load and display system logs
+        function loadLogs() {
+            fetch('/logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const container = document.getElementById('logsContainer');
+                    
+                    if (logs.length === 0) {
+                        container.innerHTML = '<div class="log-entry">No logs available</div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = '';
+                    
+                    // Display logs in reverse order (newest first)
+                    logs.reverse().forEach(log => {
+                        const entry = document.createElement('div');
+                        const levelClass = log.level.trim().toLowerCase();
+                        entry.className = `log-entry ${levelClass}`;
+                        
+                        entry.innerHTML = `
+                            <span class="log-timestamp">${log.timestamp}</span>
+                            <span class="log-level ${levelClass}">[${log.level.trim()}]</span>
+                            <span class="log-message">${log.message}</span>
+                        `;
+                        
+                        container.appendChild(entry);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading logs:', error);
+                    document.getElementById('logsContainer').innerHTML = 
+                        '<div class="log-entry error">Failed to load logs</div>';
+                });
+        }
+        
+        // Start connection and load logs
         connect();
+        loadLogs();
     </script>
 </body>
 </html>
@@ -447,12 +539,12 @@ void handleNotFound() {
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED:
-            Serial.printf("[WS] Client #%u disconnected\n", num);
+            LOG_DEBUGF("[WS] Client #%u disconnected", num);
             break;
         case WStype_CONNECTED:
             {
                 IPAddress ip = webSocket.remoteIP(num);
-                Serial.printf("[WS] Client #%u connected from %s\n", num, ip.toString().c_str());
+                LOG_DEBUGF("[WS] Client #%u connected from %s", num, ip.toString().c_str());
             }
             break;
         case WStype_TEXT:
@@ -496,9 +588,8 @@ void broadcastJoystickState() {
 
 void initWebServer() {
     if (isWiFiEnabled()) {
-        Serial.println("\n=== WiFi Configuration ===");
-        Serial.print("SSID: ");
-        Serial.println(WIFI_SSID);
+        LOG_INFO("=== WiFi Configuration ===");
+        LOG_INFOF("SSID: %s", WIFI_SSID);
         
         // Set WiFi mode to station
         WiFi.mode(WIFI_STA);
@@ -511,7 +602,7 @@ void initWebServer() {
         // Set LED to connecting status (blinking yellow)
         setLEDStatus(LED_WIFI_CONNECTING);
         
-        Serial.print("Connecting to WiFi");
+        LOG_INFO("Connecting to WiFi...");
         unsigned long startAttemptTime = millis();
         
         // Wait for connection with timeout
@@ -519,20 +610,16 @@ void initWebServer() {
                millis() - startAttemptTime < WIFI_CONNECT_TIMEOUT) {
             delay(100);
             updateStatusLED(); // Update LED animation
-            if ((millis() - startAttemptTime) % 500 == 0) {
-                Serial.print(".");
-            }
         }
         
         if (WiFi.status() == WL_CONNECTED) {
             wifiConnected = true;
-            Serial.println("\nWiFi connected!");
-            Serial.print("IP Address: ");
-            Serial.println(WiFi.localIP());
+            LOG_INFO("WiFi connected!");
+            LOG_INFOF("IP Address: %s", WiFi.localIP().toString().c_str());
             
             // Initialize mDNS
             if (MDNS.begin("esp32-heli")) {
-                Serial.println("mDNS responder started: esp32-heli.local");
+                LOG_INFO("mDNS responder started: esp32-heli.local");
             }
             
             // Configure OTA
@@ -546,64 +633,64 @@ void initWebServer() {
                 } else {
                     type = "filesystem";
                 }
-                Serial.println("Start updating " + type);
+                LOG_INFO("Start OTA updating " + type);
             });
             
             ArduinoOTA.onEnd([]() {
-                Serial.println("\nEnd");
+                LOG_INFO("OTA update complete");
             });
             
             ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                // Use DEBUG to avoid flooding log buffer
+                LOG_DEBUGF("OTA Progress: %u%%", (progress / (total / 100)));
             });
             
             ArduinoOTA.onError([](ota_error_t error) {
-                Serial.printf("Error[%u]: ", error);
                 if (error == OTA_AUTH_ERROR) {
-                    Serial.println("Auth Failed");
+                    LOG_ERROR("OTA Error: Auth Failed");
                 } else if (error == OTA_BEGIN_ERROR) {
-                    Serial.println("Begin Failed");
+                    LOG_ERROR("OTA Error: Begin Failed");
                 } else if (error == OTA_CONNECT_ERROR) {
-                    Serial.println("Connect Failed");
+                    LOG_ERROR("OTA Error: Connect Failed");
                 } else if (error == OTA_RECEIVE_ERROR) {
-                    Serial.println("Receive Failed");
+                    LOG_ERROR("OTA Error: Receive Failed");
                 } else if (error == OTA_END_ERROR) {
-                    Serial.println("End Failed");
+                    LOG_ERROR("OTA Error: End Failed");
                 }
             });
             
             ArduinoOTA.begin();
-            Serial.println("OTA ready");
+            LOG_INFO("OTA ready");
             
             // Setup web server routes
             server.on("/", handleRoot);
+            server.on("/logs", []() {
+                String logsJSON = logger.getEntriesJSON();
+                server.send(200, "application/json", logsJSON);
+            });
             server.onNotFound(handleNotFound);
             
             // Start web server
             server.begin();
-            Serial.print("Web server started on port ");
-            Serial.println(WEB_SERVER_PORT);
+            LOG_INFOF("Web server started on port %d", WEB_SERVER_PORT);
             
             // Start WebSocket server
             webSocket.begin();
             webSocket.onEvent(webSocketEvent);
-            Serial.println("WebSocket server started on port 81");
+            LOG_INFO("WebSocket server started on port 81");
             
-            Serial.print("Visit: http://");
-            Serial.print(WiFi.localIP());
-            Serial.println("/");
+            LOG_INFOF("Visit: http://%s/", WiFi.localIP().toString().c_str());
             
         } else {
             wifiConnected = false;
             setLEDStatus(LED_WIFI_FAILED);
-            Serial.println("\nWiFi connection failed!");
-            Serial.print("WiFi status: ");
-            Serial.println(WiFi.status());
-            Serial.println("Continuing without WiFi...");
+            LOG_ERROR("WiFi connection failed!");
+            LOG_ERRORF("WiFi status: %d", WiFi.status());
+            LOG_WARN("Continuing without WiFi...");
         }
     } else {
-        Serial.println("\n=== WiFi Disabled ===");
-        Serial.println("WiFi SSID not configured. Running without WiFi.");
+        LOG_INFO("=== WiFi Disabled ===");
+        LOG_INFO("WiFi SSID not configured. Running without WiFi.");
     }
 }
 

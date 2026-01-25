@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "config.h"
+#include "logger.h"
 #include "web_server.h"
 #include "status_led.h"
 #include "joystick.h"
@@ -10,7 +11,11 @@ void setup() {
   // Initialize Serial for debugging
   Serial.begin(115200);
   delay(1000);
-  Serial.println("\n\n=== ESP32 Heli Joystick ===");
+  
+  // Initialize logger
+  logger.begin(LOG_BUFFER_SIZE);
+  
+  LOG_INFO("=== ESP32 Heli Joystick ===");
   
   // Initialize USB HID Joystick first
   initJoystick();
@@ -34,16 +39,16 @@ void setup() {
   // Set LED status based on WiFi state
   if (!isWiFiEnabled()) {
     setLEDStatus(LED_WIFI_DISABLED);
-    Serial.println("LED: Red (WiFi Disabled)");
+    LOG_INFO("LED: Red (WiFi Disabled)");
   } else if (isWiFiConnected()) {
     setLEDStatus(LED_WIFI_CONNECTED);
-    Serial.println("LED: Green (WiFi Connected)");
+    LOG_INFO("LED: Green (WiFi Connected)");
   } else {
     setLEDStatus(LED_WIFI_FAILED);
-    Serial.println("LED: Red (WiFi Connection Failed)");
+    LOG_WARN("LED: Red (WiFi Connection Failed)");
   }
   
-  Serial.println("\n=== System Ready ===\n");
+  LOG_INFO("=== System Ready ===");
 }
 
 void loop() {

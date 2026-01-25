@@ -41,7 +41,9 @@
 
 // Note: If WIFI_SSID is left empty, WiFi functionality is completely disabled
 
-#define NUMBER_OF_CYCLIC_BUTTONS 8
+// array of button mappings. Defines which HW address maps to which button number
+// 1-32 means joystick button number, 0 means no button
+#define CYCLIC_BUTTONS_MAPPING {3, 0, 5, 0, 7, 0, 6, 0, 4, 0, 2, 0, 8, 0, 1, 0}
 
 #define PIN_COL_DIR 4
 #define PIN_COL_STEP 5
@@ -79,13 +81,13 @@
 // sensor values, then set these constants accordingly.
 
 // Cyclic X axis (left/right) calibration
-#define CYCLIC_X_SENSOR_MIN   500    // Sensor value at full left position
-#define CYCLIC_X_SENSOR_MAX   3500   // Sensor value at full right position
-#define CYCLIC_X_INVERT       false  // Set to true to invert axis direction
+#define CYCLIC_X_SENSOR_MIN   00     // Sensor value at full left position
+#define CYCLIC_X_SENSOR_MAX   1700   // Sensor value at full right position
+#define CYCLIC_X_INVERT       true   // Set to true to invert axis direction
 
 // Cyclic Y axis (forward/back) calibration
-#define CYCLIC_Y_SENSOR_MIN   500    // Sensor value at full back position
-#define CYCLIC_Y_SENSOR_MAX   3500   // Sensor value at full forward position
+#define CYCLIC_Y_SENSOR_MIN   630    // Sensor value at full back position
+#define CYCLIC_Y_SENSOR_MAX   2500   // Sensor value at full forward position
 #define CYCLIC_Y_INVERT       false  // Set to true to invert axis direction
 
 // Serial protocol settings (for receiving data from AS5600 sensor board)
@@ -121,5 +123,12 @@
                                 └──┘  └──┘                                    
                                                                               
 */ 
+
+// ----------------------------------------------------------------------------
+// Logging Configuration
+// ----------------------------------------------------------------------------
+// Number of log messages to keep in memory for web interface display
+// DEBUG level logs are not stored, only INFO, WARN, and ERROR
+#define LOG_BUFFER_SIZE     50
 
 #endif // CONFIG_H

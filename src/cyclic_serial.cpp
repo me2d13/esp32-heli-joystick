@@ -1,6 +1,7 @@
 #include "cyclic_serial.h"
 #include "config.h"
 #include "joystick.h"
+#include "logger.h"
 
 // Use Serial1 for cyclic data (separate from USB debug Serial)
 HardwareSerial CyclicSerial(1);
@@ -28,19 +29,11 @@ void initCyclicSerial() {
     // Initialize Serial1 with custom pins
     CyclicSerial.begin(CYCLIC_SERIAL_BAUD, SERIAL_8N1, PIN_CYCLIC_RX, PIN_CYCLIC_TX);
     
-    Serial.println("Cyclic serial receiver initialized");
-    Serial.print("  RX Pin: GPIO");
-    Serial.println(PIN_CYCLIC_RX);
-    Serial.print("  Baud rate: ");
-    Serial.println(CYCLIC_SERIAL_BAUD);
-    Serial.print("  X calibration: ");
-    Serial.print(CYCLIC_X_SENSOR_MIN);
-    Serial.print(" - ");
-    Serial.println(CYCLIC_X_SENSOR_MAX);
-    Serial.print("  Y calibration: ");
-    Serial.print(CYCLIC_Y_SENSOR_MIN);
-    Serial.print(" - ");
-    Serial.println(CYCLIC_Y_SENSOR_MAX);
+    LOG_INFO("Cyclic serial receiver initialized");
+    LOG_INFOF("  RX Pin: GPIO%d", PIN_CYCLIC_RX);
+    LOG_INFOF("  Baud rate: %d", CYCLIC_SERIAL_BAUD);
+    LOG_INFOF("  X calibration: %d - %d", CYCLIC_X_SENSOR_MIN, CYCLIC_X_SENSOR_MAX);
+    LOG_INFOF("  Y calibration: %d - %d", CYCLIC_Y_SENSOR_MIN, CYCLIC_Y_SENSOR_MAX);
 }
 
 void handleCyclicSerial() {

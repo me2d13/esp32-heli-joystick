@@ -1,12 +1,15 @@
 #include "buttons.h"
 #include "config.h"
 #include "joystick.h"
+#include "logger.h"
 
 // Button state tracking
-static bool cyclicButtonStates[NUMBER_OF_CYCLIC_BUTTONS] = {false};
+static bool cyclicButtonStates[16] = {false};
+
+static uint8_t cyclicButtonMappings[16] = CYCLIC_BUTTONS_MAPPING;
 
 void initButtons() {
-  Serial.println("Initializing button handling...");
+  LOG_INFO("Initializing button handling...");
   
   // Set address pins as OUTPUT
   pinMode(PIN_ADDR0, OUTPUT);
@@ -25,11 +28,9 @@ void initButtons() {
   pinMode(PIN_COL_BUTT_1, INPUT_PULLUP);
   pinMode(PIN_COL_BUTT_2, INPUT_PULLUP);
   
-  Serial.println("Button handling initialized");
-  Serial.printf("  - Cyclic buttons: %d (addresses 0-%d)\n", 
-                NUMBER_OF_CYCLIC_BUTTONS, NUMBER_OF_CYCLIC_BUTTONS - 1);
-  Serial.println("  - Address pins: shared across all multiplexers");
-  Serial.println("  - Signal pins: 3 (1 cyclic, 2 collective)");
+  LOG_INFO("Button handling initialized");
+  LOG_INFO("  - Address pins: shared across all multiplexers");
+  LOG_INFO("  - Signal pins: 3 (1 cyclic, 2 collective)");
 }
 
 void setMultiplexerAddress(uint8_t address) {
@@ -44,13 +45,14 @@ void setMultiplexerAddress(uint8_t address) {
 }
 
 void handleButtons() {
+  bool dirty = false;
   // Scan through all 16 possible addresses (0-15)
   for (uint8_t addr = 0; addr < 16; addr++) {
     // Set the multiplexer address
     setMultiplexerAddress(addr);
     
     // Only read cyclic buttons for addresses 0-7 (as only 8 buttons are wired)
-    if (addr < NUMBER_OF_CYCLIC_BUTTONS) {
+    if (cyclicButtonMappings[addr] != 0) {
       // Read the cyclic button signal (active LOW, so invert)
       bool buttonPressed = !digitalRead(PIN_CYCLIC_BUTT);
       
@@ -59,11 +61,13 @@ void handleButtons() {
         cyclicButtonStates[addr] = buttonPressed;
         
         // Update joystick button (buttons are 1-indexed in HID)
-        uint8_t buttonNumber = addr + 1; // Button 1-8
-        setJoystickButton(buttonNumber, buttonPressed);
+        uint8_t buttonNumber = cyclicButtonMappings[addr]; // Button 1-8
+        setJoystickButton(buttonNumber - 1, buttonPressed);
+        dirty = true;
         
-        Serial.printf("Cyclic Button %d (addr %d): %s\n", 
-                      buttonNumber, addr, buttonPressed ? "PRESSED" : "RELEASED");
+        // Use DEBUG level to avoid flooding the log buffer (this is in loop)
+        LOG_DEBUGF("Cyclic Button %d (addr %d): %s", 
+                   buttonNumber, addr, buttonPressed ? "PRESSED" : "RELEASED");
       }
     }
     
@@ -75,5 +79,8 @@ void handleButtons() {
     
     // Read collective button 2 signal
     // bool col2Pressed = !digitalRead(PIN_COL_BUTT_2);
+  }
+  if (dirty) {
+    updateJoystick();
   }
 }
