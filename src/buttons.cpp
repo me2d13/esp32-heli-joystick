@@ -5,6 +5,7 @@
 
 // Button state tracking
 static bool cyclicButtonStates[16] = {false};
+static bool collectiveFtrButtonState = false;
 
 static uint8_t cyclicButtonMappings[16] = CYCLIC_BUTTONS_MAPPING;
 
@@ -27,6 +28,7 @@ void initButtons() {
   pinMode(PIN_CYCLIC_BUTT, INPUT_PULLUP);
   pinMode(PIN_COL_BUTT_1, INPUT_PULLUP);
   pinMode(PIN_COL_BUTT_2, INPUT_PULLUP);
+  pinMode(PIN_COL_FTR, INPUT_PULLUP);  // Direct collective button
   
   LOG_INFO("Button handling initialized");
   LOG_INFO("  - Address pins: shared across all multiplexers");
@@ -80,6 +82,21 @@ void handleButtons() {
     // Read collective button 2 signal
     // bool col2Pressed = !digitalRead(PIN_COL_BUTT_2);
   }
+  
+  // Handle directly-wired collective button (PIN_COL_FTR) - mapped as button 9
+  bool collectiveFtrPressed = !digitalRead(PIN_COL_FTR);
+  if (collectiveFtrPressed != collectiveFtrButtonState) {
+    collectiveFtrButtonState = collectiveFtrPressed;
+    
+    // Update joystick button 9 (index 8, as buttons are 0-indexed in HID)
+    setJoystickButton(8, collectiveFtrPressed);
+    dirty = true;
+    
+    // Use DEBUG level to avoid flooding the log buffer (this is in loop)
+    LOG_DEBUGF("Collective FTR Button 9: %s", 
+               collectiveFtrPressed ? "PRESSED" : "RELEASED");
+  }
+  
   if (dirty) {
     updateJoystick();
   }
