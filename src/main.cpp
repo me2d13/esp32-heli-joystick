@@ -27,8 +27,17 @@ void setup() {
   // Initialize cyclic serial receiver (for AS5600 sensor data)
   initCyclicSerial();
   
-  // Initialize collective axis (analog input)
+  // Initialize collective axis (AS5600 sensor)
   initCollective();
+  
+  // NOTE: Buzzer on GPIO 19 is DISABLED
+  // GPIO 19 is USB D- on ESP32-S3 and causes USB HID device failures
+  // TODO: Rewire buzzer to a different GPIO (e.g., GPIO 43, 44, 40, or 45)
+  // pinMode(PIN_BUZZER, OUTPUT);
+  // digitalWrite(PIN_BUZZER, LOW);
+
+
+
   
   // Initialize status LED
   initStatusLED();

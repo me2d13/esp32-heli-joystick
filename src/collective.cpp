@@ -2,27 +2,71 @@
 #include "config.h"
 #include "joystick.h"
 #include "logger.h"
+#include <Wire.h>
+#include <AS5600.h>
 
-// Last raw ADC reading
+// AS5600 sensor instance using I2C bus 1 (to avoid USB conflicts)
+static AS5600 collectiveSensor(&Wire1);
+
+// Sensor connection status
+static bool sensorConnected = false;
+
+// Last raw sensor reading
 static uint16_t collectiveRaw = 0;
 
 // Last mapped axis value
 static int16_t collectiveAxis = 5000;
 
+// Timing for sensor reading (20Hz = 50ms interval)
+static unsigned long lastReadTime = 0;
+static const unsigned long READ_INTERVAL_MS = 50;
+
 void initCollective() {
-    // Configure the analog input pin
-    pinMode(PIN_COL_I2C_D, INPUT);
+    // Initialize I2C bus 1 with custom pins for collective sensor
+    // Using Wire1 (I2C1) instead of Wire (I2C0) to avoid USB peripheral conflicts
+    // SDA = PIN_COL_I2C_D, SCL = PIN_COL_I2C_C
+    Wire1.begin(PIN_COL_I2C_D, PIN_COL_I2C_C);
+    
+    // Set I2C clock speed to 100kHz (standard mode) for stability
+    Wire1.setClock(100000);
+    
+    // Initialize AS5600 sensor
+    collectiveSensor.begin();
+    
+    // Check if sensor is connected and store the status
+    sensorConnected = collectiveSensor.isConnected();
     
     LOG_INFO("Collective axis initialized");
-    LOG_INFOF("  Analog Pin: GPIO%d", PIN_COL_I2C_D);
+    LOG_INFOF("  I2C Bus: Wire1 (I2C1, avoids USB conflicts)");
+    LOG_INFOF("  I2C SDA Pin: GPIO%d", PIN_COL_I2C_D);
+    LOG_INFOF("  I2C SCL Pin: GPIO%d", PIN_COL_I2C_C);
+    LOG_INFOF("  I2C Clock: 100 kHz");
+    LOG_INFOF("  AS5600 Sensor: %s", sensorConnected ? "Connected" : "NOT FOUND");
+    LOG_INFOF("  Update Rate: 20 Hz (50ms interval)");
     LOG_INFOF("  Calibration: %d - %d (wraps at 0/4095)", COLLECTIVE_SENSOR_MIN, COLLECTIVE_SENSOR_MAX);
     LOG_INFOF("  Inverted: %s", COLLECTIVE_INVERT ? "true" : "false");
+    
+    if (!sensorConnected) {
+        LOG_WARN("AS5600 sensor not detected on I2C bus! Collective axis will not be updated.");
+    }
 }
 
 void handleCollective() {
-    // Read analog value from pin
-    // ESP32 ADC: 12-bit resolution (0-4095) for 0-3.3V range
-    collectiveRaw = analogRead(PIN_COL_I2C_D);
+    // Skip processing if sensor is not connected
+    if (!sensorConnected) {
+        return;
+    }
+    
+    // Limit reading frequency to 20Hz (every 50ms)
+    unsigned long currentTime = millis();
+    if (currentTime - lastReadTime < READ_INTERVAL_MS) {
+        return;
+    }
+    lastReadTime = currentTime;
+    
+    // Read raw angle from AS5600 sensor
+    // AS5600 returns 12-bit value (0-4095) representing 0-360 degrees
+    collectiveRaw = collectiveSensor.rawAngle();
     
     // Handle overflow: The axis wraps around at the ADC boundary
     // Physical range: 1370 (down) → 4095 → 0 → 1500 (up)
