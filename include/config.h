@@ -12,6 +12,10 @@
 #define NUM_PIXELS 1
 #define RGB_LED_BRIGHTNESS 50  // Brightness (0-255)
 
+// Rainbow mode - smooth color cycling after system is stable
+#define LED_RAINBOW_DELAY_MS 60000  // Time before rainbow starts (60 seconds)
+#define LED_RAINBOW_SPEED 5         // Rainbow transition speed (1-10, higher = faster)
+
 // ----------------------------------------------------------------------------
 // WiFi Configuration (Optional)
 // ----------------------------------------------------------------------------
