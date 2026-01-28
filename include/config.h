@@ -69,7 +69,7 @@
 #define PIN_CYCLIC_Y_STEP 39
 #define PIN_CYCLIC_Y_DIR 38
 
-#define PIN_BUZZER 19
+#define PIN_BUZZER 21
 
 // ----------------------------------------------------------------------------
 // Cyclic Axis Calibration
@@ -123,9 +123,9 @@
           CYCLIC-BUTT   │GPIO9              GPIO45│                           
           CYCLIC-FTR    │GPIO10             GPIO48│                           
           COL-I2C-D     │GPIO11             GPIO47│
-          COL-I2C-C     │GPIO12             GPIO21│
+          COL-I2C-C     │GPIO12             GPIO21│  BUZZER
           CYCLIC-RX     │GPIO13             GPIO20│
-          CYCLIC-TX     │GPIO14             GPIO19│  BUZZER                         
+          CYCLIC-TX     │GPIO14             GPIO19│                           
                         │5V0                   GND│                           
                         │GND    USB   UART     GND│                           
                         └───────┌──┐──┌──┐────────┘                           

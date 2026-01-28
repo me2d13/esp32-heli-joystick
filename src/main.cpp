@@ -7,6 +7,7 @@
 #include "buttons.h"
 #include "cyclic_serial.h"
 #include "collective.h"
+#include "buzzer.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -30,13 +31,8 @@ void setup() {
   // Initialize collective axis (AS5600 sensor)
   initCollective();
   
-  // NOTE: Buzzer on GPIO 19 is DISABLED
-  // GPIO 19 is USB D- on ESP32-S3 and causes USB HID device failures
-  // TODO: Rewire buzzer to a different GPIO (e.g., GPIO 43, 44, 40, or 45)
-  // pinMode(PIN_BUZZER, OUTPUT);
-  // digitalWrite(PIN_BUZZER, LOW);
-
-
+  // Initialize buzzer (now on GPIO 21)
+  initBuzzer();
 
   
   // Initialize status LED
@@ -62,6 +58,9 @@ void setup() {
   }
   
   LOG_INFO("=== System Ready ===");
+  
+  // Double beep to indicate system is ready
+  doubleBeep();
 }
 
 void loop() {
@@ -73,6 +72,9 @@ void loop() {
   
   // Read collective axis and update joystick
   handleCollective();
+  
+  // Handle buzzer state machine (non-blocking beeps)
+  handleBuzzer();
   
   // Handle web server and OTA
   handleWebServer();
