@@ -8,6 +8,7 @@
 #include "cyclic_serial.h"
 #include "collective.h"
 #include "buzzer.h"
+#include "steppers.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -33,6 +34,9 @@ void setup() {
   
   // Initialize buzzer (now on GPIO 21)
   initBuzzer();
+  
+  // Initialize stepper motors
+  initSteppers();
 
   
   // Initialize status LED
@@ -72,6 +76,9 @@ void loop() {
   
   // Read collective axis and update joystick
   handleCollective();
+  
+  // Handle stepper motor buttons (FTR toggles)
+  handleSteppers();
   
   // Handle buzzer state machine (non-blocking beeps)
   handleBuzzer();

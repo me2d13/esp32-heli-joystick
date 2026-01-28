@@ -2,6 +2,7 @@
 #include "config.h"
 #include "joystick.h"
 #include "logger.h"
+#include "steppers.h"
 
 // Button state tracking
 static bool cyclicButtonStates[16] = {false};
@@ -66,6 +67,12 @@ void handleButtons() {
         uint8_t buttonNumber = cyclicButtonMappings[addr]; // Button 1-8
         setJoystickButton(buttonNumber - 1, buttonPressed);
         dirty = true;
+        
+        // Special handling: Button 1 (addr 14, joystick button 0) also toggles cyclic motor hold
+        if (addr == 14 && buttonPressed) {
+          // Button 1 pressed - toggle cyclic motor hold
+          toggleCyclicHold();
+        }
         
         // Use DEBUG level to avoid flooding the log buffer (this is in loop)
         LOG_DEBUGF("Cyclic Button %d (addr %d): %s", 

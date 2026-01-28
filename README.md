@@ -8,8 +8,11 @@ ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
   - Device name: `esp-heli-v1`
   - 3 axes: Cyclic X, Cyclic Y, Collective
   - 32 programmable buttons
-- **Cyclic Axis via External Sensor Board** - Receives position data from AS5600 magnetic encoders via UART
-- **RGB LED Status Indicator** - WS2812 RGB LED on GPIO 48
+- **Cyclic Axes via External Sensor Board** - Receives position data from AS5600 magnetic encoders via UART
+- **Collective Axis via AS5600 I2C Sensor** - Direct magnetic encoder reading with 20Hz update rate
+- **Stepper Motor Hold System** - Lock axes in position with button-controlled stepper motors
+- **Acoustic Feedback** - Active buzzer for mode changes and notifications
+- **RGB LED Status Indicator** - WS2812 RGB LED with rainbow mode
 - **Optional WiFi Connectivity** - Connect to WiFi for web interface and OTA updates
 - **OTA Updates** - Upload new firmware over WiFi without USB cable
 - **Web Interface** - Real-time dashboard with WebSocket-powered live updates
@@ -120,23 +123,34 @@ The physical stick movement typically doesn't cover the full 0-4095 sensor range
 
 The sensor values are mapped linearly from the calibration range to the joystick axis range (0 to 10000).
 
-## Collective Axis (Analog Input)
+## Collective Axis (AS5600 I2C Sensor)
 
-The collective axis is read from an analog voltage input (0-3.3V) on GPIO 11. This is a temporary solution until the I2C collective sensor is wired.
+The collective axis uses an AS5600 magnetic rotary encoder connected via I2C for precise angle measurement.
 
 ### Hardware
 
-- **Input Pin**: GPIO 11 (PIN_COL_I2C_D)
-- **Input Type**: Analog voltage (0-3.3V)
-- **ADC Resolution**: 12-bit (0-4095)
+- **Sensor**: AS5600 magnetic encoder
+- **Interface**: I2C (Wire1 bus to avoid USB conflicts)
+- **SDA Pin**: GPIO 11 (PIN_COL_I2C_D)
+- **SCL Pin**: GPIO 12 (PIN_COL_I2C_C)
+- **I2C Clock**: 100 kHz (standard mode)
+- **Update Rate**: 20 Hz (50ms interval)
+- **Resolution**: 12-bit (0-4095)
+
+### Features
+
+- **Non-blocking**: Uses timing control to prevent I2C bus overload
+- **Automatic Detection**: Checks sensor presence on startup
+- **Graceful Degradation**: System continues if sensor not connected
+- **USB Safe**: Uses I2C1 bus to avoid conflicts with USB peripheral
 
 ### Calibration
 
-The collective axis supports calibration with overflow handling for cases where the sensor range wraps around the ADC boundary (0/4095). Configuration is in `include/config.h`:
+The collective axis supports calibration with overflow handling for cases where the sensor range wraps around the boundary (0/4095). Configuration is in `include/config.h`:
 
 ```cpp
 // Collective axis (up/down) calibration
-// Note: This axis wraps around at the ADC boundary (0/4095)
+// Note: This axis wraps around at the boundary (0/4095)
 // Physical range: 1370 (down) → 4095 → 0 → 1500 (up)
 #define COLLECTIVE_SENSOR_MIN 1370   // Sensor value at full down position
 #define COLLECTIVE_SENSOR_MAX 1500   // Sensor value at full up position
@@ -145,7 +159,7 @@ The collective axis supports calibration with overflow handling for cases where 
 
 **Overflow Handling:**
 
-The collective axis implementation automatically detects and handles wrap-around at the ADC boundary. When the physical range crosses from 4095 to 0 (or vice versa), the values are normalized into a continuous range before mapping to the joystick axis.
+The collective axis implementation automatically detects and handles wrap-around at the sensor boundary. When the physical range crosses from 4095 to 0 (or vice versa), the values are normalized into a continuous range before mapping to the joystick axis.
 
 **To calibrate:**
 1. Move the collective to full down position and note the raw value (visible on web interface)
@@ -232,6 +246,77 @@ The RGB LED shows the current system status:
 - **Yellow (blinking)** - Connecting to WiFi
 - **Green (solid)** - WiFi connected successfully
 - **Red (solid)** - WiFi disabled or connection failed
+- **Rainbow (cycling)** - System stable, eye candy mode (activates after 60 seconds)
+
+### Rainbow Mode
+
+After the system has been running stably with WiFi connected for a configurable time (default: 60 seconds), the LED automatically transitions to rainbow mode, smoothly cycling through all colors. This provides a visual indication that the system is running normally.
+
+**Configuration** (in `include/config.h`):
+```cpp
+#define LED_RAINBOW_DELAY_MS 60000  // Time before rainbow starts (60 seconds)
+#define LED_RAINBOW_SPEED 5         // Transition speed (1-10, higher = faster)
+```
+
+## Acoustic Feedback (Buzzer)
+
+An active buzzer on GPIO 21 provides acoustic feedback for system events and mode changes.
+
+### Hardware
+
+- **Type**: Active buzzer (3.3V)
+- **Pin**: GPIO 21 (PIN_BUZZER)
+- **Mode**: Non-blocking (state machine based)
+
+### Beep Patterns
+
+- **Double beep** 🔊🔊 - System ready (on startup)
+- **Double beep** 🔊🔊 - Motor engaged (holding position)
+- **Single beep** 🔊 - Motor released (free movement)
+
+The buzzer system is non-blocking and won't interfere with joystick control during beep sequences.
+
+## Stepper Motor Hold System
+
+Three stepper motors can lock the joystick axes in their current positions, providing force feedback and position holding.
+
+### Hardware
+
+Each axis has a stepper motor with standard driver interface:
+- **Collective**: DIR (GPIO 4), STEP (GPIO 5), ENABLE (GPIO 16)
+- **Cyclic X**: DIR (GPIO 42), STEP (GPIO 2), ENABLE (GPIO 1)
+- **Cyclic Y**: DIR (GPIO 38), STEP (GPIO 39), ENABLE (GPIO 41)
+
+**Note**: Enable pins are **active LOW** (LOW = motor engaged, HIGH = motor free)
+
+### Control
+
+**Collective Motor:**
+- Press **Force Trim Release button** (GPIO 15) to toggle hold/free
+- Direct button with hardware debouncing
+
+**Cyclic Motors (X and Y together):**
+- Press **Joystick Button 1** (first cyclic button, shown as button 0 in web interface)
+- Toggles both X and Y motors simultaneously
+- Button still functions as joystick button
+
+### Operation Modes
+
+**Free Movement (Default):**
+- Motors disabled (ENABLE = HIGH)
+- Axes move freely
+- No resistance
+
+**Position Hold:**
+- Motors enabled (ENABLE = LOW)
+- Motors energized and hold current position
+- Provides resistance to movement
+- Useful for trim or autopilot simulation
+
+### Acoustic Feedback
+
+- **Double beep** when motors engage
+- **Single beep** when motors release
 
 ## Usage
 
@@ -278,18 +363,22 @@ esp32-heli-joystick/
 │   ├── secrets.h             # WiFi credentials (gitignored)
 │   ├── secrets.h.template    # Template for secrets.h
 │   ├── buttons.h             # Button handling interface
+│   ├── buzzer.h              # Buzzer control interface
 │   ├── collective.h          # Collective axis interface
 │   ├── cyclic_serial.h       # Cyclic sensor serial receiver interface
 │   ├── joystick.h            # USB HID joystick interface
 │   ├── status_led.h          # RGB LED status indicator interface
+│   ├── steppers.h            # Stepper motor control interface
 │   └── web_server.h          # Web server interface
 ├── src/
 │   ├── main.cpp              # Main application code
 │   ├── buttons.cpp           # Button scanning and handling
-│   ├── collective.cpp        # Collective axis analog input with overflow handling
+│   ├── buzzer.cpp            # Non-blocking buzzer control
+│   ├── collective.cpp        # Collective axis AS5600 I2C sensor
 │   ├── cyclic_serial.cpp     # Cyclic sensor data receiver (AS5600 protocol)
 │   ├── joystick.cpp          # USB HID joystick implementation
-│   ├── status_led.cpp        # RGB LED status indicator
+│   ├── status_led.cpp        # RGB LED status indicator with rainbow mode
+│   ├── steppers.cpp          # Stepper motor hold control
 │   └── web_server.cpp        # Web server and WiFi implementation
 ├── platformio.ini            # PlatformIO configuration
 └── README.md                 # This file
