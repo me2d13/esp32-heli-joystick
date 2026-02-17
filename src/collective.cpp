@@ -2,6 +2,7 @@
 #include "config.h"
 #include "joystick.h"
 #include "logger.h"
+#include "state.h"
 #include <Wire.h>
 #include <AS5600.h>
 
@@ -10,12 +11,6 @@ static AS5600 collectiveSensor(&Wire1);
 
 // Sensor connection status
 static bool sensorConnected = false;
-
-// Last raw sensor reading
-static uint16_t collectiveRaw = 0;
-
-// Last mapped axis value
-static int16_t collectiveAxis = 5000;
 
 // Timing for sensor reading (20Hz = 50ms interval)
 static unsigned long lastReadTime = 0;
@@ -66,13 +61,13 @@ void handleCollective() {
     
     // Read raw angle from AS5600 sensor
     // AS5600 returns 12-bit value (0-4095) representing 0-360 degrees
-    collectiveRaw = collectiveSensor.rawAngle();
+    state.sensors.collectiveRaw = collectiveSensor.rawAngle();
     
     // Handle overflow: The axis wraps around at the ADC boundary
     // Physical range: 1370 (down) → 4095 → 0 → 1500 (up)
     // We need to "unwrap" this into a continuous range
     
-    uint16_t sensorValue = collectiveRaw;
+    uint16_t sensorValue = state.sensors.collectiveRaw;
     uint16_t sensorMin = COLLECTIVE_SENSOR_MIN;  // 1370
     uint16_t sensorMax = COLLECTIVE_SENSOR_MAX;  // 1500
     
@@ -124,22 +119,22 @@ void handleCollective() {
     // Multiply first, then divide to preserve precision
     long mapped = ((long)inputOffset * (long)outputRange) / (long)inputRange + AXIS_MIN;
     
-    collectiveAxis = (int16_t)mapped;
+    state.sensors.collectiveCalibrated = (int16_t)mapped;
     
     // Apply inversion if needed
     if (COLLECTIVE_INVERT) {
-        collectiveAxis = AXIS_MAX - (collectiveAxis - AXIS_MIN);
+        state.sensors.collectiveCalibrated = AXIS_MAX - (state.sensors.collectiveCalibrated - AXIS_MIN);
     }
     
     // Update the joystick collective axis (Z axis)
-    setJoystickAxis(AXIS_COLLECTIVE, collectiveAxis);
+    setJoystickAxis(AXIS_COLLECTIVE, state.sensors.collectiveCalibrated);
     updateJoystick();
 }
 
 uint16_t getCollectiveRaw() {
-    return collectiveRaw;
+    return state.sensors.collectiveRaw;
 }
 
 int16_t getCollectiveAxis() {
-    return collectiveAxis;
+    return state.sensors.collectiveCalibrated;
 }

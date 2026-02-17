@@ -2,6 +2,7 @@
 #include "config.h"
 #include "joystick.h"
 #include "logger.h"
+#include "state.h"
 
 // Use Serial1 for cyclic data (separate from USB debug Serial)
 HardwareSerial CyclicSerial(1);
@@ -10,11 +11,7 @@ HardwareSerial CyclicSerial(1);
 static uint8_t rxBuffer[PACKET_SIZE];
 static uint8_t rxIndex = 0;
 
-// Last valid sensor values
-static uint16_t cyclicXRaw = 0;
-static uint16_t cyclicYRaw = 0;
-
-// Timestamp of last valid packet
+// Timestamp of last valid packet (for validity timeout / age calculation)
 static unsigned long lastValidPacketTime = 0;
 
 // Data validity timeout (milliseconds)
@@ -102,16 +99,19 @@ static void processPacket(const uint8_t* packet) {
     uint16_t sensor1 = packet[1] | (packet[2] << 8);
     uint16_t sensor2 = packet[3] | (packet[4] << 8);
     
-    // Store raw values
-    cyclicXRaw = sensor1;
-    cyclicYRaw = sensor2;
-    
-    // Update timestamp
-    lastValidPacketTime = millis();
+    // Store in global state
+    state.sensors.cyclicXRaw = sensor1;
+    state.sensors.cyclicYRaw = sensor2;
+    state.sensors.cyclicValid = true;
     
     // Map sensor values to joystick axis range
     int16_t axisX = mapSensorToAxis(sensor1, CYCLIC_X_SENSOR_MIN, CYCLIC_X_SENSOR_MAX, CYCLIC_X_INVERT);
     int16_t axisY = mapSensorToAxis(sensor2, CYCLIC_Y_SENSOR_MIN, CYCLIC_Y_SENSOR_MAX, CYCLIC_Y_INVERT);
+    state.sensors.cyclicXCalibrated = axisX;
+    state.sensors.cyclicYCalibrated = axisY;
+    
+    // Update timestamp for validity timeout
+    lastValidPacketTime = millis();
     
     // Update joystick
     setJoystickAxis(AXIS_CYCLIC_X, axisX);
@@ -141,18 +141,20 @@ static int16_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_
 }
 
 uint16_t getCyclicXRaw() {
-    return cyclicXRaw;
+    return state.sensors.cyclicXRaw;
 }
 
 uint16_t getCyclicYRaw() {
-    return cyclicYRaw;
+    return state.sensors.cyclicYRaw;
 }
 
 bool isCyclicDataValid() {
     if (lastValidPacketTime == 0) {
+        state.sensors.cyclicValid = false;
         return false;
     }
-    return (millis() - lastValidPacketTime) < DATA_VALID_TIMEOUT;
+    state.sensors.cyclicValid = (millis() - lastValidPacketTime) < DATA_VALID_TIMEOUT;
+    return state.sensors.cyclicValid;
 }
 
 unsigned long getCyclicDataAge() {

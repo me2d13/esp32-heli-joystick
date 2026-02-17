@@ -1,4 +1,5 @@
 #include "joystick.h"
+#include "state.h"
 #include <Joystick_ESP32S2.h>
 #include "USB.h"
 #include "logger.h"
@@ -25,9 +26,7 @@ Joystick_ Joystick(
     false   // No steering
 );
 
-// State tracking
-static int16_t axisValues[JOYSTICK_AXIS_COUNT] = {5000, 5000, 5000};
-static uint32_t buttonStates = 0;
+// State is in global state.joystick
 
 // Smooth animation variables for demo
 static unsigned long lastUpdateTime = 0;
@@ -46,6 +45,14 @@ void initJoystick() {
     
     // Begin joystick with manual send mode (false = disable AutoSendState)
     Joystick.begin(false);
+
+    // Initialize state and HID to center position
+    state.joystick.cyclicX = AXIS_CENTER;
+    state.joystick.cyclicY = AXIS_CENTER;
+    state.joystick.collective = AXIS_CENTER;
+    Joystick.setXAxis(AXIS_CENTER);
+    Joystick.setYAxis(AXIS_CENTER);
+    Joystick.setZAxis(AXIS_CENTER);
     
     LOG_INFO("USB HID Joystick initialized: esp-heli-v1");
     LOG_INFO("3 axes (Cyclic X, Cyclic Y, Collective) + 32 buttons");
@@ -58,18 +65,18 @@ void setJoystickAxis(uint8_t axis, int16_t value) {
     if (value < AXIS_MIN) value = AXIS_MIN;
     if (value > AXIS_MAX) value = AXIS_MAX;
     
-    // Store value
-    axisValues[axis] = value;
-    
-    // Update joystick
+    // Store in global state
     switch (axis) {
         case AXIS_CYCLIC_X:
+            state.joystick.cyclicX = value;
             Joystick.setXAxis(value);
             break;
         case AXIS_CYCLIC_Y:
+            state.joystick.cyclicY = value;
             Joystick.setYAxis(value);
             break;
         case AXIS_COLLECTIVE:
+            state.joystick.collective = value;
             Joystick.setZAxis(value);
             break;
     }
@@ -77,11 +84,11 @@ void setJoystickAxis(uint8_t axis, int16_t value) {
 
 void setJoystickButton(uint8_t button, bool pressed) {
     if (button < JOYSTICK_BUTTON_COUNT) {
-        // Update state tracking
+        // Update global state
         if (pressed) {
-            buttonStates |= (1UL << button);
+            state.joystick.buttons |= (1UL << button);
         } else {
-            buttonStates &= ~(1UL << button);
+            state.joystick.buttons &= ~(1UL << button);
         }
         
         // Update joystick
@@ -95,15 +102,18 @@ void updateJoystick() {
 }
 
 int16_t getJoystickAxis(uint8_t axis) {
-    if (axis < JOYSTICK_AXIS_COUNT) {
-        return axisValues[axis];
+    if (axis >= JOYSTICK_AXIS_COUNT) return 0;
+    switch (axis) {
+        case AXIS_CYCLIC_X: return state.joystick.cyclicX;
+        case AXIS_CYCLIC_Y: return state.joystick.cyclicY;
+        case AXIS_COLLECTIVE: return state.joystick.collective;
+        default: return 0;
     }
-    return 0;
 }
 
 bool getJoystickButton(uint8_t button) {
     if (button < JOYSTICK_BUTTON_COUNT) {
-        return (buttonStates & (1UL << button)) != 0;
+        return (state.joystick.buttons & (1UL << button)) != 0;
     }
     return false;
 }
