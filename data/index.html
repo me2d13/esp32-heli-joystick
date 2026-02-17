@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Heli Joystick</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🚁 ESP32 Heli Joystick</h1>
+        <p class="subtitle">Real-time Controller Monitor</p>
+
+        <div class="card">
+            <div class="card-title">
+                <span class="connection-dot" id="connectionDot"></span>
+                System Status
+            </div>
+            <div class="status-row">
+                <span class="status-label">WebSocket</span>
+                <span class="status-value" id="wsStatus">Connecting...</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Cyclic Data</span>
+                <span class="status-value" id="cyclicStatus">--</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Update Rate</span>
+                <span class="status-value" id="updateRate">-- Hz</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📊 Axes</div>
+
+            <div class="axis-container">
+                <div class="axis-header">
+                    <span class="axis-name">Cyclic X (Left/Right)</span>
+                    <span class="axis-value" id="axisX">0</span>
+                </div>
+                <div class="axis-bar-container">
+                    <div class="axis-center-line"></div>
+                    <div class="axis-bar" id="axisXBar"></div>
+                </div>
+            </div>
+
+            <div class="axis-container">
+                <div class="axis-header">
+                    <span class="axis-name">Cyclic Y (Fwd/Back)</span>
+                    <span class="axis-value" id="axisY">0</span>
+                </div>
+                <div class="axis-bar-container">
+                    <div class="axis-center-line"></div>
+                    <div class="axis-bar" id="axisYBar"></div>
+                </div>
+            </div>
+
+            <div class="axis-container">
+                <div class="axis-header">
+                    <span class="axis-name">Collective (Up/Down)</span>
+                    <span class="axis-value" id="axisZ">0</span>
+                </div>
+                <div class="axis-bar-container">
+                    <div class="axis-center-line"></div>
+                    <div class="axis-bar" id="axisZBar"></div>
+                </div>
+            </div>
+
+            <div class="raw-values">
+                <div class="raw-value">Raw X: <span id="rawX">--</span></div>
+                <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
+                <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔘 Buttons (32)</div>
+            <div class="buttons-grid" id="buttonsGrid">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📋 System Logs</div>
+            <div class="logs-section" id="logsContainer">
+                <div class="log-entry">Loading logs...</div>
+            </div>
+        </div>
+
+        <p class="footer">
+            WiFi: Connected • OTA: Ready<br>
+            <a href="https://github.com/me2d13/esp32-heli-joystick" style="color: #64ffda;">GitHub</a>
+        </p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -238,6 +238,21 @@ pio run -e ota --target upload
 **To update the IP address:**
 Edit `platformio.ini` and change the `upload_port` in the `[env:ota]` section to match your ESP32's IP address.
 
+### Upload Web Interface (LittleFS)
+
+The web UI (HTML, CSS, JS) is stored in LittleFS. After the first firmware upload, or when you change files in the `data/` folder, upload the filesystem:
+
+```bash
+pio run -t uploadfs
+```
+
+For OTA filesystem upload (ESP32 on WiFi):
+```bash
+pio run -e ota -t uploadfs
+```
+
+**Note:** Upload firmware first, then filesystem. Both are required for the web interface to work.
+
 ## LED Status Indicators
 
 The RGB LED shows the current system status:
@@ -333,6 +348,8 @@ Each axis has a stepper motor with standard driver interface:
 
 ### Web Interface
 
+The web UI is served from LittleFS as static files (`data/index.html`, `data/styles.css`, `data/app.js`). The `/logs` endpoint provides JSON for the system log viewer.
+
 Once connected to WiFi, open your browser and navigate to:
 - `http://<IP_ADDRESS>/` - Main dashboard
 - `http://esp32-heli-joy.local/` - mDNS address (may not work on all networks)
@@ -380,6 +397,10 @@ esp32-heli-joystick/
 │   ├── status_led.cpp        # RGB LED status indicator with rainbow mode
 │   ├── steppers.cpp          # Stepper motor hold control
 │   └── web_server.cpp        # Web server and WiFi implementation
+├── data/                     # Web UI static files (uploaded to LittleFS)
+│   ├── index.html            # Main dashboard page
+│   ├── styles.css            # Styles
+│   └── app.js                # WebSocket client and UI logic
 ├── platformio.ini            # PlatformIO configuration
 └── README.md                 # This file
 ```
