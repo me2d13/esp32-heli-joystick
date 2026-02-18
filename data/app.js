@@ -3,35 +3,40 @@ let updateCount = 0;
 let lastSecond = Date.now();
 let currentHz = 0;
 
-// Create button grid
+// Axis range: 0-10000
+const AXIS_MIN = 0;
+const AXIS_MAX = 10000;
+
+// Create button grid (small squares with 1-based number)
 const buttonsGrid = document.getElementById('buttonsGrid');
 for (let i = 0; i < 32; i++) {
     const btn = document.createElement('div');
     btn.className = 'button';
     btn.id = 'btn' + i;
-    btn.textContent = i;
+    btn.textContent = i + 1;
     buttonsGrid.appendChild(btn);
 }
 
-function updateAxisBar(barId, value) {
-    const bar = document.getElementById(barId);
-    // New range: 0-10000, center at 5000
-    const center = 5000;
-    const offset = value - center;
-    const percent = Math.abs(offset) / center * 50;
+// Map axis value (0-10000) to X position % in box (0=left, 10000=right)
+function axisToXPercent(value) {
+    return Math.max(0, Math.min(100, (value / AXIS_MAX) * 100));
+}
 
-    bar.className = 'axis-bar';
-    if (offset >= 0) {
-        bar.classList.add('positive');
-        bar.style.width = percent + '%';
-        bar.style.marginLeft = '50%';
-        bar.style.marginRight = '';
-    } else {
-        bar.classList.add('negative');
-        bar.style.width = percent + '%';
-        bar.style.marginLeft = (50 - percent) + '%';
-        bar.style.marginRight = '';
-    }
+// Map axis value (0-10000) to Y position % in box (0=back/bottom, 10000=fwd/top)
+function axisToYPercent(value) {
+    return Math.max(0, Math.min(100, ((AXIS_MAX - value) / AXIS_MAX) * 100));
+}
+
+function updateCyclicXYPoint(element, x, y) {
+    element.style.left = axisToXPercent(x) + '%';
+    element.style.top = axisToYPercent(y) + '%';
+}
+
+function updateCollectiveBar(value) {
+    const bar = document.getElementById('collectiveBar');
+    const percent = Math.max(0, Math.min(100, (value / AXIS_MAX) * 100));
+    bar.style.height = percent + '%';
+    document.getElementById('collectiveValue').textContent = value;
 }
 
 function connect() {
@@ -61,23 +66,41 @@ function connect() {
         try {
             const data = JSON.parse(event.data);
 
-            // Update axes
-            document.getElementById('axisX').textContent = data.axes[0];
-            document.getElementById('axisY').textContent = data.axes[1];
-            document.getElementById('axisZ').textContent = data.axes[2];
+            // Support new state format (sensors + joystick) or legacy (axes, rawX, etc.)
+            const sensors = data.sensors || {};
+            const joystick = data.joystick || {};
+            const axes = data.axes;
+            if (axes) {
+                // Legacy format: use axes for both sensor and joystick
+                sensors.cyclicX = sensors.cyclicX ?? axes[0];
+                sensors.cyclicY = sensors.cyclicY ?? axes[1];
+                sensors.collective = sensors.collective ?? axes[2];
+                joystick.cyclicX = joystick.cyclicX ?? axes[0];
+                joystick.cyclicY = joystick.cyclicY ?? axes[1];
+                joystick.buttons = joystick.buttons ?? data.buttons ?? 0;
+                sensors.rawX = sensors.rawX ?? data.rawX;
+                sensors.rawY = sensors.rawY ?? data.rawY;
+                sensors.rawZ = sensors.rawZ ?? data.rawZ;
+                sensors.cyclicValid = sensors.cyclicValid ?? data.cyclicValid;
+            }
 
-            updateAxisBar('axisXBar', data.axes[0]);
-            updateAxisBar('axisYBar', data.axes[1]);
-            updateAxisBar('axisZBar', data.axes[2]);
+            // Cyclic X-Y: two points (sensor = stick position, joystick = values sent to PC)
+            const sensorPoint = document.getElementById('sensorPoint');
+            const joystickPoint = document.getElementById('joystickPoint');
+            updateCyclicXYPoint(sensorPoint, sensors.cyclicX ?? 5000, sensors.cyclicY ?? 5000);
+            updateCyclicXYPoint(joystickPoint, joystick.cyclicX ?? 5000, joystick.cyclicY ?? 5000);
 
-            // Update raw values
-            document.getElementById('rawX').textContent = data.rawX;
-            document.getElementById('rawY').textContent = data.rawY;
-            document.getElementById('rawZ').textContent = data.rawZ;
+            // Collective: sensor reading only (rising bar)
+            updateCollectiveBar(sensors.collective ?? 5000);
 
-            // Update cyclic status
+            // Raw values
+            document.getElementById('rawX').textContent = sensors.rawX ?? '--';
+            document.getElementById('rawY').textContent = sensors.rawY ?? '--';
+            document.getElementById('rawZ').textContent = sensors.rawZ ?? '--';
+
+            // Cyclic status
             const cyclicStatus = document.getElementById('cyclicStatus');
-            if (data.cyclicValid) {
+            if (sensors.cyclicValid) {
                 cyclicStatus.textContent = 'Receiving';
                 cyclicStatus.className = 'status-value status-online';
             } else {
@@ -85,14 +108,14 @@ function connect() {
                 cyclicStatus.className = 'status-value status-offline';
             }
 
-            // Update buttons
+            // Buttons
+            const buttons = joystick.buttons ?? 0;
             for (let i = 0; i < 32; i++) {
                 const btn = document.getElementById('btn' + i);
-                const pressed = (data.buttons & (1 << i)) !== 0;
-                btn.className = pressed ? 'button pressed' : 'button';
+                btn.className = (buttons & (1 << i)) ? 'button pressed' : 'button';
             }
 
-            // Calculate update rate
+            // Update rate
             updateCount++;
             const now = Date.now();
             if (now - lastSecond >= 1000) {
@@ -143,6 +166,11 @@ function loadLogs() {
                 '<div class="log-entry error">Failed to load logs</div>';
         });
 }
+
+// Set initial positions (center) before first WebSocket message
+updateCyclicXYPoint(document.getElementById('sensorPoint'), 5000, 5000);
+updateCyclicXYPoint(document.getElementById('joystickPoint'), 5000, 5000);
+updateCollectiveBar(5000);
 
 // Start connection and load logs
 connect();

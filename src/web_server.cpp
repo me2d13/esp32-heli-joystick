@@ -5,6 +5,7 @@
 #include "joystick.h"
 #include "cyclic_serial.h"
 #include "collective.h"
+#include "state.h"
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -110,33 +111,32 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     }
 }
 
-// Send joystick state to all connected WebSocket clients
+// Build complete state as JSON (for API and WebSocket)
+static void buildStateJson(JsonDocument& doc) {
+    // Update cyclic validity (computed from last packet time)
+    (void)isCyclicDataValid();
+
+    JsonObject sensors = doc.createNestedObject("sensors");
+    sensors["cyclicX"] = state.sensors.cyclicXCalibrated;
+    sensors["cyclicY"] = state.sensors.cyclicYCalibrated;
+    sensors["collective"] = state.sensors.collectiveCalibrated;
+    sensors["cyclicValid"] = state.sensors.cyclicValid;
+    sensors["rawX"] = state.sensors.cyclicXRaw;
+    sensors["rawY"] = state.sensors.cyclicYRaw;
+    sensors["rawZ"] = state.sensors.collectiveRaw;
+
+    JsonObject joystick = doc.createNestedObject("joystick");
+    joystick["cyclicX"] = state.joystick.cyclicX;
+    joystick["cyclicY"] = state.joystick.cyclicY;
+    joystick["collective"] = state.joystick.collective;
+    joystick["buttons"] = state.joystick.buttons;
+}
+
+// Send complete state to all connected WebSocket clients
 void broadcastJoystickState() {
-    // Build JSON with joystick state
-    StaticJsonDocument<256> doc;
-    
-    // Axes array
-    JsonArray axes = doc.createNestedArray("axes");
-    axes.add(getJoystickAxis(AXIS_CYCLIC_X));
-    axes.add(getJoystickAxis(AXIS_CYCLIC_Y));
-    axes.add(getJoystickAxis(AXIS_COLLECTIVE));
-    
-    // Raw sensor values
-    doc["rawX"] = getCyclicXRaw();
-    doc["rawY"] = getCyclicYRaw();
-    doc["rawZ"] = getCollectiveRaw();
-    doc["cyclicValid"] = isCyclicDataValid();
-    
-    // Buttons as bitmask
-    uint32_t buttonMask = 0;
-    for (int i = 0; i < 32; i++) {
-        if (getJoystickButton(i)) {
-            buttonMask |= (1UL << i);
-        }
-    }
-    doc["buttons"] = buttonMask;
-    
-    // Serialize and send
+    StaticJsonDocument<384> doc;
+    buildStateJson(doc);
+
     String json;
     serializeJson(doc, json);
     webSocket.broadcastTXT(json);
@@ -227,6 +227,13 @@ void initWebServer() {
             
             // Setup web server routes
             server.on("/", handleRoot);
+            server.on("/api/state", []() {
+                StaticJsonDocument<384> doc;
+                buildStateJson(doc);
+                String json;
+                serializeJson(doc, json);
+                server.send(200, "application/json", json);
+            });
             server.on("/logs", []() {
                 String logsJSON = logger.getEntriesJSON();
                 server.send(200, "application/json", logsJSON);

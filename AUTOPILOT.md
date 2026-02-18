@@ -76,6 +76,11 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 ### Pending
 
 - [ ] Simulator data receiver
+
+### API
+
+- **GET /api/state** – Returns complete state as JSON: `{ sensors: {...}, joystick: {...} }`
+- **WebSocket (port 81)** – Broadcasts same structure for real-time updates
 - [ ] Simulator data receiver (protocol TBD)
 - [ ] Autopilot mode switching (button binding)
 - [ ] Autopilot control logic
@@ -90,3 +95,4 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 |------|--------|
 | (initial) | Created state.h with AutopilotState, SimulatorState, SensorState, JoystickState, AppState. Created AUTOPILOT.md. |
 | (integrated) | Added state.cpp with global `state`. cyclic_serial, collective, joystick now read/write state. Getters (getJoystickAxis, getCyclicXRaw, etc.) read from state. Web API continues to work via existing getters. |
+| (web ui) | New axis display: X-Y box with sensor (cyan) and joystick (orange) points; collective as rising bar. Added GET /api/state. WebSocket now sends full state (sensors + joystick). |
