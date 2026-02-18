@@ -38,6 +38,8 @@ struct AutopilotState {
     float selectedHeading = 0.0f;   // degrees, 0-360
     float selectedAltitude = 0.0f;  // feet or meters (future)
     float selectedVerticalSpeed = 0.0f;  // ft/min or m/s
+    float selectedPitch = 0.0f;    // degrees, captured when entering PitchHold
+    float selectedRoll = 0.0f;     // degrees, captured when entering RollHold
 
     // Flags: is the selected value currently active/armed?
     bool hasSelectedHeading = false;

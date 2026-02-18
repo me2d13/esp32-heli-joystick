@@ -106,6 +106,11 @@
 // Serial protocol settings (for receiving data from AS5600 sensor board)
 #define CYCLIC_SERIAL_BAUD    115200 // Baud rate for cyclic sensor data
 
+// ----------------------------------------------------------------------------
+// Autopilot Configuration
+// ----------------------------------------------------------------------------
+#define SIMULATOR_VALID_TIMEOUT_MS  5000  // Simulator data considered valid for this long (ms)
+
 /*
                                                                               
                             ┌─────────────────┐                               

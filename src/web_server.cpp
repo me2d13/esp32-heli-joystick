@@ -6,6 +6,7 @@
 #include "cyclic_serial.h"
 #include "collective.h"
 #include "state.h"
+#include "ap.h"
 
 // Autopilot mode to string for JSON API
 static const char* apHorizontalModeStr(APHorizontalMode m) {
@@ -157,6 +158,8 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["selectedHeading"] = state.autopilot.selectedHeading;
     autopilot["selectedAltitude"] = state.autopilot.selectedAltitude;
     autopilot["selectedVerticalSpeed"] = state.autopilot.selectedVerticalSpeed;
+    autopilot["selectedPitch"] = state.autopilot.selectedPitch;
+    autopilot["selectedRoll"] = state.autopilot.selectedRoll;
 }
 
 // Send complete state to all connected WebSocket clients
@@ -259,6 +262,28 @@ void initWebServer() {
                 buildStateJson(doc);
                 String json;
                 serializeJson(doc, json);
+                server.send(200, "application/json", json);
+            });
+            server.on("/api/autopilot", HTTP_POST, []() {
+                if (!server.hasArg("plain")) {
+                    server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
+                    return;
+                }
+                String body = server.arg("plain");
+                StaticJsonDocument<256> doc;
+                DeserializationError err = deserializeJson(doc, body);
+                if (err) {
+                    server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                    return;
+                }
+                if (doc.containsKey("enabled")) {
+                    setAPEnabled(doc["enabled"].as<bool>());
+                }
+                // Return updated state
+                StaticJsonDocument<512> stateDoc;
+                buildStateJson(stateDoc);
+                String json;
+                serializeJson(stateDoc, json);
                 server.send(200, "application/json", json);
             });
             server.on("/logs", []() {

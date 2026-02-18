@@ -76,11 +76,18 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 ### Pending
 
 - [ ] Simulator data receiver
+- [ ] Actual AP control logic (cyclic output computation)
 
 ### API
 
-- **GET /api/state** – Returns complete state as JSON: `{ sensors: {...}, joystick: {...} }`
+- **GET /api/state** – Returns complete state as JSON: `{ sensors, joystick, autopilot }`
+- **POST /api/autopilot** – Set AP state. Body: `{ "enabled": true|false }`. Returns updated state.
 - **WebSocket (port 81)** – Broadcasts same structure for real-time updates
+
+### AP Module (ap.cpp)
+
+- `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`
+- When turning ON: defaults to RollHold + PitchHold, captures pitch/roll from simulator (or 0)
 - [ ] Simulator data receiver (protocol TBD)
 - [ ] Autopilot mode switching (button binding)
 - [ ] Autopilot control logic
@@ -96,3 +103,4 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 | (initial) | Created state.h with AutopilotState, SimulatorState, SensorState, JoystickState, AppState. Created AUTOPILOT.md. |
 | (integrated) | Added state.cpp with global `state`. cyclic_serial, collective, joystick now read/write state. Getters (getJoystickAxis, getCyclicXRaw, etc.) read from state. Web API continues to work via existing getters. |
 | (web ui) | New axis display: X-Y box with sensor (cyan) and joystick (orange) points; collective as rising bar. Added GET /api/state. WebSocket now sends full state (sensors + joystick). |
+| (ap control) | Added ap.cpp/ap.h skeleton. POST /api/autopilot with `{enabled:bool}`. Toggle button on web page. State: selectedPitch, selectedRoll. Turn-on defaults to RollHold+PitchHold. |

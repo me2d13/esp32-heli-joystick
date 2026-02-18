@@ -39,6 +39,34 @@ function updateCollectiveBar(value) {
     document.getElementById('collectiveValue').textContent = value;
 }
 
+function updateAPToggleButton(enabled) {
+    const btn = document.getElementById('apToggleBtn');
+    if (!btn) return;
+    btn.textContent = enabled ? 'AP ON' : 'AP OFF';
+    btn.classList.toggle('on', enabled);
+}
+
+function toggleAP() {
+    const btn = document.getElementById('apToggleBtn');
+    const currentlyOn = btn.classList.contains('on');
+    const newState = !currentlyOn;
+
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newState })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const ap = data.autopilot || {};
+        updateAutopilotDisplay(ap);
+        updateAPToggleButton(ap.enabled ?? false);
+    })
+    .catch(err => {
+        console.error('AP toggle failed:', err);
+    });
+}
+
 function updateAutopilotDisplay(ap) {
     const lateralEl = document.getElementById('apLateral');
     const centerEl = document.getElementById('apCenter');
@@ -121,9 +149,10 @@ function connect() {
                 sensors.cyclicValid = sensors.cyclicValid ?? data.cyclicValid;
             }
 
-            // Autopilot display
+            // Autopilot display and toggle button
             const ap = data.autopilot || {};
             updateAutopilotDisplay(ap);
+            updateAPToggleButton(ap.enabled);
 
             // Cyclic X-Y: two points (sensor = stick position, joystick = values sent to PC)
             const sensorPoint = document.getElementById('sensorPoint');
@@ -213,6 +242,10 @@ updateCyclicXYPoint(document.getElementById('sensorPoint'), 5000, 5000);
 updateCyclicXYPoint(document.getElementById('joystickPoint'), 5000, 5000);
 updateCollectiveBar(5000);
 updateAutopilotDisplay({});
+updateAPToggleButton(false);
+
+// AP toggle button
+document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
 
 // Start connection and load logs
 connect();

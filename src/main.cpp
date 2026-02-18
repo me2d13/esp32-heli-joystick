@@ -9,6 +9,7 @@
 #include "collective.h"
 #include "buzzer.h"
 #include "steppers.h"
+#include "ap.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -38,7 +39,9 @@ void setup() {
   // Initialize stepper motors
   initSteppers();
 
-  
+  // Initialize autopilot
+  initAP();
+
   // Initialize status LED
   initStatusLED();
   
