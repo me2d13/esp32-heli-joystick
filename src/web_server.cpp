@@ -6,6 +6,25 @@
 #include "cyclic_serial.h"
 #include "collective.h"
 #include "state.h"
+
+// Autopilot mode to string for JSON API
+static const char* apHorizontalModeStr(APHorizontalMode m) {
+    switch (m) {
+        case APHorizontalMode::Off: return "off";
+        case APHorizontalMode::RollHold: return "roll";
+        case APHorizontalMode::HeadingHold: return "hdg";
+        default: return "off";
+    }
+}
+static const char* apVerticalModeStr(APVerticalMode m) {
+    switch (m) {
+        case APVerticalMode::Off: return "off";
+        case APVerticalMode::PitchHold: return "pitch";
+        case APVerticalMode::VerticalSpeed: return "vs";
+        case APVerticalMode::AltitudeHold: return "alts";
+        default: return "off";
+    }
+}
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -130,11 +149,19 @@ static void buildStateJson(JsonDocument& doc) {
     joystick["cyclicY"] = state.joystick.cyclicY;
     joystick["collective"] = state.joystick.collective;
     joystick["buttons"] = state.joystick.buttons;
+
+    JsonObject autopilot = doc.createNestedObject("autopilot");
+    autopilot["enabled"] = state.autopilot.enabled;
+    autopilot["horizontalMode"] = apHorizontalModeStr(state.autopilot.horizontalMode);
+    autopilot["verticalMode"] = apVerticalModeStr(state.autopilot.verticalMode);
+    autopilot["selectedHeading"] = state.autopilot.selectedHeading;
+    autopilot["selectedAltitude"] = state.autopilot.selectedAltitude;
+    autopilot["selectedVerticalSpeed"] = state.autopilot.selectedVerticalSpeed;
 }
 
 // Send complete state to all connected WebSocket clients
 void broadcastJoystickState() {
-    StaticJsonDocument<384> doc;
+    StaticJsonDocument<512> doc;
     buildStateJson(doc);
 
     String json;
@@ -228,7 +255,7 @@ void initWebServer() {
             // Setup web server routes
             server.on("/", handleRoot);
             server.on("/api/state", []() {
-                StaticJsonDocument<384> doc;
+                StaticJsonDocument<512> doc;
                 buildStateJson(doc);
                 String json;
                 serializeJson(doc, json);

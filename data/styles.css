@@ -200,6 +200,46 @@ h1 {
     margin-top: 8px;
 }
 
+/* Autopilot section - PFD style (Garmin-like) */
+.ap-card .ap-pfd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0a0a0a;
+    border: 1px solid #1a3d1a;
+    border-radius: 8px;
+    padding: 12px 20px;
+    min-height: 48px;
+}
+
+.ap-lateral,
+.ap-center,
+.ap-vertical {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 1em;
+    font-weight: 600;
+    color: #00cc44;
+}
+
+.ap-lateral {
+    text-align: left;
+    min-width: 80px;
+}
+
+.ap-center {
+    text-align: center;
+    font-size: 1.2em;
+}
+
+.ap-vertical {
+    text-align: right;
+    min-width: 80px;
+}
+
+.ap-pfd .inactive {
+    color: #333;
+}
+
 .raw-values {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;

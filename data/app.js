@@ -39,6 +39,43 @@ function updateCollectiveBar(value) {
     document.getElementById('collectiveValue').textContent = value;
 }
 
+function updateAutopilotDisplay(ap) {
+    const lateralEl = document.getElementById('apLateral');
+    const centerEl = document.getElementById('apCenter');
+    const verticalEl = document.getElementById('apVertical');
+
+    const enabled = ap.enabled ?? false;
+    const hMode = ap.horizontalMode ?? 'off';
+    const vMode = ap.verticalMode ?? 'off';
+
+    // Center: AP when enabled
+    centerEl.textContent = enabled ? 'AP' : '--';
+    centerEl.classList.toggle('inactive', !enabled);
+
+    // Left: lateral mode (ROLL, HDG, or --)
+    let lateralText = '--';
+    if (enabled && hMode === 'roll') lateralText = 'ROLL';
+    else if (enabled && hMode === 'hdg') {
+        const hdg = ap.selectedHeading ?? 0;
+        lateralText = 'HDG ' + Math.round(hdg);
+    }
+    lateralEl.textContent = lateralText;
+    lateralEl.classList.toggle('inactive', !enabled || hMode === 'off');
+
+    // Right: vertical mode (PITCH, VS, ALTS, or --)
+    let verticalText = '--';
+    if (enabled && vMode === 'pitch') verticalText = 'PITCH';
+    else if (enabled && vMode === 'vs') {
+        const vs = ap.selectedVerticalSpeed ?? 0;
+        verticalText = 'VS ' + Math.round(vs);
+    } else if (enabled && vMode === 'alts') {
+        const alt = ap.selectedAltitude ?? 0;
+        verticalText = 'ALTS ' + Math.round(alt);
+    }
+    verticalEl.textContent = verticalText;
+    verticalEl.classList.toggle('inactive', !enabled || vMode === 'off');
+}
+
 function connect() {
     const host = window.location.hostname;
     ws = new WebSocket('ws://' + host + ':81');
@@ -83,6 +120,10 @@ function connect() {
                 sensors.rawZ = sensors.rawZ ?? data.rawZ;
                 sensors.cyclicValid = sensors.cyclicValid ?? data.cyclicValid;
             }
+
+            // Autopilot display
+            const ap = data.autopilot || {};
+            updateAutopilotDisplay(ap);
 
             // Cyclic X-Y: two points (sensor = stick position, joystick = values sent to PC)
             const sensorPoint = document.getElementById('sensorPoint');
@@ -171,6 +212,7 @@ function loadLogs() {
 updateCyclicXYPoint(document.getElementById('sensorPoint'), 5000, 5000);
 updateCyclicXYPoint(document.getElementById('joystickPoint'), 5000, 5000);
 updateCollectiveBar(5000);
+updateAutopilotDisplay({});
 
 // Start connection and load logs
 connect();
