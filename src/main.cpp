@@ -86,7 +86,10 @@ void loop() {
   
   // Read collective axis and update joystick
   handleCollective();
-  
+
+  // Autopilot logic (overrides joystick when AP on)
+  handleAP();
+
   // Handle stepper motor buttons (FTR toggles)
   handleSteppers();
   

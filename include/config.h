@@ -117,6 +117,12 @@
 // Autopilot Configuration
 // ----------------------------------------------------------------------------
 #define SIMULATOR_VALID_TIMEOUT_MS  5000  // Simulator data considered valid for this long (ms)
+#define AP_MIN_SPEED_KNOTS          10    // Min speed (knots) to enable or keep AP on
+
+// PID gains for pitch hold (tune as needed)
+#define AP_PITCH_KP                200.0f
+#define AP_PITCH_KI                0.0f
+#define AP_PITCH_KD                50.0f
 
 /*
                                                                               

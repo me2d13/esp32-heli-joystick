@@ -17,4 +17,7 @@ void setAPHorizontalMode(APHorizontalMode mode);
 // Set vertical mode (for future use)
 void setAPVerticalMode(APVerticalMode mode);
 
+// Main AP loop - call from main loop when AP may be active
+void handleAP();
+
 #endif // AP_H

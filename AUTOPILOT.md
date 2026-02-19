@@ -76,7 +76,7 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 ### Pending
 
 - [ ] Simulator data receiver – **DONE** (simulator_serial.cpp)
-- [ ] Actual AP control logic (cyclic output computation)
+- [ ] Actual AP control logic – **DONE** (pitch hold via PID)
 
 ### API
 
@@ -115,9 +115,11 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 
 ### AP Module (ap.cpp)
 
-- `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`
+- `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`, `handleAP()`
+- `canAutopilotBeOn()`: simulator data valid + speed ≥ `AP_MIN_SPEED_KNOTS` (10)
 - When turning ON: defaults to RollHold + PitchHold, captures pitch/roll from simulator (or 0)
-- AP enable rejected if simulator data not valid (no data in last 5 s)
+- AP enable rejected if `!canAutopilotBeOn()`
+- `handleAP()`: if AP on, checks `canAutopilotBeOn()` – turns off if false; pitch hold via PID (br3ttb/PID); cyclic X = sensor pass-through; collective = sensor pass-through
 
 ---
 
@@ -130,3 +132,4 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 | (web ui) | New axis display: X-Y box with sensor (cyan) and joystick (orange) points; collective as rising bar. Added GET /api/state. WebSocket now sends full state (sensors + joystick). |
 | (ap control) | Added ap.cpp/ap.h skeleton. POST /api/autopilot with `{enabled:bool}`. Toggle button on web page. State: selectedPitch, selectedRoll. Turn-on defaults to RollHold+PitchHold. |
 | (simulator) | Added simulator_serial.cpp/h. JSON over Serial2 (GPIO43/44), newline-separated. Fields: spd, alt, pitch, roll, hdg, vs. Updates state.simulator + lastUpdateMs. |
+| (ap logic) | handleAP() in main loop. canAutopilotBeOn() = simulator valid + speed ≥ 10 kt. Pitch hold via PID (Kp=200, Kd=50). Cyclic X from sensors, cyclic Y from PID. |
