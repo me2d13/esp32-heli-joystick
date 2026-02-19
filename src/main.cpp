@@ -6,6 +6,7 @@
 #include "joystick.h"
 #include "buttons.h"
 #include "cyclic_serial.h"
+#include "simulator_serial.h"
 #include "collective.h"
 #include "buzzer.h"
 #include "steppers.h"
@@ -29,6 +30,9 @@ void setup() {
   
   // Initialize cyclic serial receiver (for AS5600 sensor data)
   initCyclicSerial();
+
+  // Initialize simulator serial (JSON over UART)
+  initSimulatorSerial();
   
   // Initialize collective axis (AS5600 sensor)
   initCollective();
@@ -76,6 +80,9 @@ void loop() {
   
   // Process incoming cyclic sensor data and update joystick
   handleCyclicSerial();
+
+  // Process incoming simulator data (JSON)
+  handleSimulatorSerial();
   
   // Read collective axis and update joystick
   handleCollective();

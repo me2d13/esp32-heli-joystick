@@ -107,6 +107,13 @@
 #define CYCLIC_SERIAL_BAUD    115200 // Baud rate for cyclic sensor data
 
 // ----------------------------------------------------------------------------
+// Simulator Serial (JSON over UART)
+// ----------------------------------------------------------------------------
+#define SIM_SERIAL_BAUD     115200  // Baud rate for simulator data
+#define PIN_SIM_RX          43      // RX pin (connect to simulator TX)
+#define PIN_SIM_TX          44      // TX pin (optional, simulator may be RX-only)
+
+// ----------------------------------------------------------------------------
 // Autopilot Configuration
 // ----------------------------------------------------------------------------
 #define SIMULATOR_VALID_TIMEOUT_MS  5000  // Simulator data considered valid for this long (ms)

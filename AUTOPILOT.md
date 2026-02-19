@@ -75,7 +75,7 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 
 ### Pending
 
-- [ ] Simulator data receiver
+- [ ] Simulator data receiver – **DONE** (simulator_serial.cpp)
 - [ ] Actual AP control logic (cyclic output computation)
 
 ### API
@@ -84,15 +84,40 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 - **POST /api/autopilot** – Set AP state. Body: `{ "enabled": true|false }`. Returns updated state.
 - **WebSocket (port 81)** – Broadcasts same structure for real-time updates
 
+### Simulator Serial Protocol
+
+Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simulator data to enable.
+
+**Connection:**
+- ESP32 GPIO 43 (SIM_RX) ← Simulator TX
+- GND ← GND
+- Baud: 115200 (config: `SIM_SERIAL_BAUD`)
+
+**Format:** Newline-separated JSON. Each line is one message. Partial updates supported (only include fields that changed).
+
+**Field names:**
+
+| Field   | Meaning        | Unit              |
+|---------|----------------|-------------------|
+| `spd`   | Speed          | knots or m/s      |
+| `alt`   | Altitude       | feet or meters    |
+| `pitch` | Pitch angle    | degrees           |
+| `roll`  | Roll angle     | degrees           |
+| `hdg`   | Heading        | degrees (0–360)   |
+| `vs`    | Vertical speed | ft/min or m/s     |
+
+**Example:**
+```json
+{"spd":85,"alt":2500,"pitch":2.5,"roll":-1,"hdg":270,"vs":0}
+```
+
+**Validity:** Data is considered valid for `SIMULATOR_VALID_TIMEOUT_MS` (default 5 s) after last received message. AP cannot be enabled without valid simulator data.
+
 ### AP Module (ap.cpp)
 
 - `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`
 - When turning ON: defaults to RollHold + PitchHold, captures pitch/roll from simulator (or 0)
-- [ ] Simulator data receiver (protocol TBD)
-- [ ] Autopilot mode switching (button binding)
-- [ ] Autopilot control logic
-- [ ] Web API endpoints for state display
-- [ ] Web UI updates for state monitoring
+- AP enable rejected if simulator data not valid (no data in last 5 s)
 
 ---
 
@@ -104,3 +129,4 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 | (integrated) | Added state.cpp with global `state`. cyclic_serial, collective, joystick now read/write state. Getters (getJoystickAxis, getCyclicXRaw, etc.) read from state. Web API continues to work via existing getters. |
 | (web ui) | New axis display: X-Y box with sensor (cyan) and joystick (orange) points; collective as rising bar. Added GET /api/state. WebSocket now sends full state (sensors + joystick). |
 | (ap control) | Added ap.cpp/ap.h skeleton. POST /api/autopilot with `{enabled:bool}`. Toggle button on web page. State: selectedPitch, selectedRoll. Turn-on defaults to RollHold+PitchHold. |
+| (simulator) | Added simulator_serial.cpp/h. JSON over Serial2 (GPIO43/44), newline-separated. Fields: spd, alt, pitch, roll, hdg, vs. Updates state.simulator + lastUpdateMs. |
