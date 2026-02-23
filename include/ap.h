@@ -20,4 +20,7 @@ void setAPVerticalMode(APVerticalMode mode);
 // Main AP loop - call from main loop when AP may be active
 void handleAP();
 
+// Sync PID tunings from state
+void syncAPPidTunings();
+
 #endif // AP_H

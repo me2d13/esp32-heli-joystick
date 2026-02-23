@@ -103,8 +103,4 @@ void handleButtons() {
     LOG_DEBUGF("Collective FTR Button 9: %s", 
                collectiveFtrPressed ? "PRESSED" : "RELEASED");
   }
-  
-  if (dirty) {
-    updateJoystick();
-  }
 }

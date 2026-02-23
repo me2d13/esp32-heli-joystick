@@ -125,10 +125,9 @@ void handleCollective() {
     if (COLLECTIVE_INVERT) {
         state.sensors.collectiveCalibrated = AXIS_MAX - (state.sensors.collectiveCalibrated - AXIS_MIN);
     }
-    
+
     // Update the joystick collective axis (Z axis)
     setJoystickAxis(AXIS_COLLECTIVE, state.sensors.collectiveCalibrated);
-    updateJoystick();
 }
 
 uint16_t getCollectiveRaw() {

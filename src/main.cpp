@@ -75,6 +75,9 @@ void setup() {
 }
 
 void loop() {
+  static unsigned long lastHeartbeat = 0;
+  unsigned long now = millis();
+
   // Handle button scanning and updates
   handleButtons();
   
@@ -99,8 +102,17 @@ void loop() {
   // Handle web server and OTA
   handleWebServer();
   
+  // Consolidate joystick updates (rate-limited inside the function)
+  updateJoystick();
+
   // Update LED animations (e.g., blinking)
   updateStatusLED();
+
+  // Periodic heartbeat to serial (UART0) so user can see it's alive
+  if (now - lastHeartbeat >= 2000) {
+    lastHeartbeat = now;
+    LOG_DEBUGF("Heartbeat: %lu ms", now);
+  }
   
   delay(10); // Small delay to prevent tight loop
 }

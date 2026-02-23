@@ -160,11 +160,32 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["selectedVerticalSpeed"] = state.autopilot.selectedVerticalSpeed;
     autopilot["selectedPitch"] = state.autopilot.selectedPitch;
     autopilot["selectedRoll"] = state.autopilot.selectedRoll;
+    autopilot["pitchKp"] = state.autopilot.pitchKp;
+    autopilot["pitchKi"] = state.autopilot.pitchKi;
+    autopilot["pitchKd"] = state.autopilot.pitchKd;
+    autopilot["rollKp"] = state.autopilot.rollKp;
+    autopilot["rollKi"] = state.autopilot.rollKi;
+    autopilot["rollKd"] = state.autopilot.rollKd;
+
+    JsonObject simulator = doc.createNestedObject("simulator");
+    simulator["speed"] = state.simulator.speed;
+    simulator["altitude"] = state.simulator.altitude;
+    simulator["pitch"] = state.simulator.pitch;
+    simulator["roll"] = state.simulator.roll;
+    simulator["heading"] = state.simulator.heading;
+    simulator["verticalSpeed"] = state.simulator.verticalSpeed;
+    simulator["valid"] = state.simulator.valid;
+    
+    long age = -1;
+    if (state.simulator.lastUpdateMs > 0) {
+        age = millis() - state.simulator.lastUpdateMs;
+    }
+    simulator["lastSimDataAgeMs"] = age;
 }
 
 // Send complete state to all connected WebSocket clients
 void broadcastJoystickState() {
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<1024> doc;
     buildStateJson(doc);
 
     String json;
@@ -258,7 +279,7 @@ void initWebServer() {
             // Setup web server routes
             server.on("/", handleRoot);
             server.on("/api/state", []() {
-                StaticJsonDocument<512> doc;
+                StaticJsonDocument<1024> doc;
                 buildStateJson(doc);
                 String json;
                 serializeJson(doc, json);
@@ -279,6 +300,60 @@ void initWebServer() {
                 if (doc.containsKey("enabled")) {
                     setAPEnabled(doc["enabled"].as<bool>());
                 }
+                // Return updated state
+                StaticJsonDocument<512> stateDoc;
+                buildStateJson(stateDoc);
+                String json;
+                serializeJson(stateDoc, json);
+                server.send(200, "application/json", json);
+            });
+            server.on("/api/pid", HTTP_POST, []() {
+                if (!server.hasArg("plain")) {
+                    server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
+                    return;
+                }
+                String body = server.arg("plain");
+                StaticJsonDocument<256> doc;
+                DeserializationError err = deserializeJson(doc, body);
+                if (err) {
+                    server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                    return;
+                }
+                
+                bool changed = false;
+                if (doc.containsKey("pitchKp")) {
+                    state.autopilot.pitchKp = doc["pitchKp"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("pitchKi")) {
+                    state.autopilot.pitchKi = doc["pitchKi"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("pitchKd")) {
+                    state.autopilot.pitchKd = doc["pitchKd"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("rollKp")) {
+                    state.autopilot.rollKp = doc["rollKp"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("rollKi")) {
+                    state.autopilot.rollKi = doc["rollKi"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("rollKd")) {
+                    state.autopilot.rollKd = doc["rollKd"].as<float>();
+                    changed = true;
+                }
+                
+                if (changed) {
+                    syncAPPidTunings();
+                    LOG_INFOF("PID Pitch updated: P:%.2f I:%.2f D:%.2f", 
+                               state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
+                    LOG_INFOF("PID Roll updated:  P:%.2f I:%.2f D:%.2f", 
+                               state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
+                }
+
                 // Return updated state
                 StaticJsonDocument<512> stateDoc;
                 buildStateJson(stateDoc);

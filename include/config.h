@@ -120,9 +120,14 @@
 #define AP_MIN_SPEED_KNOTS          10    // Min speed (knots) to enable or keep AP on
 
 // PID gains for pitch hold (tune as needed)
-#define AP_PITCH_KP                200.0f
-#define AP_PITCH_KI                0.0f
+#define AP_PITCH_KP                30.0f
+#define AP_PITCH_KI                20.0f
 #define AP_PITCH_KD                50.0f
+
+// PID gains for roll hold (tune as needed)
+#define AP_ROLL_KP                 10.0f
+#define AP_ROLL_KI                 20.0f
+#define AP_ROLL_KD                 20.0f
 
 /*
                                                                               

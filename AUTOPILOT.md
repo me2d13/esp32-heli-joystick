@@ -133,3 +133,5 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 | (ap control) | Added ap.cpp/ap.h skeleton. POST /api/autopilot with `{enabled:bool}`. Toggle button on web page. State: selectedPitch, selectedRoll. Turn-on defaults to RollHold+PitchHold. |
 | (simulator) | Added simulator_serial.cpp/h. JSON over Serial2 (GPIO43/44), newline-separated. Fields: spd, alt, pitch, roll, hdg, vs. Updates state.simulator + lastUpdateMs. |
 | (ap logic) | handleAP() in main loop. canAutopilotBeOn() = simulator valid + speed ≥ 10 kt. Pitch hold via PID (Kp=200, Kd=50). Cyclic X from sensors, cyclic Y from PID. |
+| (ap stability)| Gated sensor connection: Sensor modules now update joystick axes directly ONLY if that axis is not being controlled by AP. handleAP is now the ONLY place that touches the Pitch axis during PitchHold. Roll and Collective remain directly connected to sensors to maintain full manual control. |
+| (pid tuning) | Added real-time PID tuning via web interface. POST /api/pid endpoint updates pitchKp, pitchKi, pitchKd in global state. Controller update rate synced with simulator data. |

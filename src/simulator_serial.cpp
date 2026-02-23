@@ -4,8 +4,9 @@
 #include "logger.h"
 #include <ArduinoJson.h>
 
-// Use Serial2 for simulator (Serial=USB, Serial1=cyclic)
-HardwareSerial SimSerial(2);
+// Use the standard Serial (UART0) for simulator data as it's hardwired to the CH340 COM port
+// Note: With CDC_ON_BOOT=0, Serial is UART0 on GPIO 43/44.
+#define SimSerial Serial
 
 // Line buffer for JSON messages
 #define SIM_LINE_BUF_SIZE 256
@@ -13,10 +14,10 @@ static char lineBuf[SIM_LINE_BUF_SIZE];
 static size_t lineLen = 0;
 
 void initSimulatorSerial() {
-    SimSerial.begin(SIM_SERIAL_BAUD, SERIAL_8N1, PIN_SIM_RX, PIN_SIM_TX);
+    // Serial is already initialized in main.cpp, but ensure baud rate matches
+    SimSerial.begin(SIM_SERIAL_BAUD);
 
-    LOG_INFO("Simulator serial initialized");
-    LOG_INFOF("  RX Pin: GPIO%d", PIN_SIM_RX);
+    LOG_INFO("Simulator serial initialized (using Serial UART0)");
     LOG_INFOF("  Baud rate: %d", SIM_SERIAL_BAUD);
 }
 
@@ -32,6 +33,7 @@ static void processLine(const char* line) {
     unsigned long now = millis();
     state.simulator.lastUpdateMs = now;
     state.simulator.valid = true;
+    state.simulator.dataUpdated = true;
 
     if (doc.containsKey("spd")) {
         state.simulator.speed = doc["spd"].as<float>();

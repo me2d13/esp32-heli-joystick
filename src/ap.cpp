@@ -23,22 +23,48 @@ bool canAutopilotBeOn() {
 }
 
 // PID for pitch hold: setpoint=selectedPitch, input=actual pitch, output=cyclic Y offset
-static double pidInput = 0;
-static double pidOutput = 0;
-static double pidSetpoint = 0;
-static PID pitchPid(&pidInput, &pidOutput, &pidSetpoint,
+static double pitchInput = 0;
+static double pitchOutput = 0;
+static double pitchSetpoint = 0;
+static PID pitchPid(&pitchInput, &pitchOutput, &pitchSetpoint,
                     AP_PITCH_KP, AP_PITCH_KI, AP_PITCH_KD, 1);  // 1=REVERSE
+
+// PID for roll hold: setpoint=selectedRoll, input=actual roll, output=cyclic X offset
+static double rollInput = 0;
+static double rollOutput = 0;
+static double rollSetpoint = 0;
+static PID rollPid(&rollInput, &rollOutput, &rollSetpoint,
+                   AP_ROLL_KP, AP_ROLL_KI, AP_ROLL_KD, REVERSE);  // REVERSE: Input (roll right) up -> Output (joystick) down (move left)
 
 void initAP() {
     state.autopilot.enabled = false;
     state.autopilot.horizontalMode = APHorizontalMode::Off;
     state.autopilot.verticalMode = APVerticalMode::Off;
 
+    // Load initial PID parameters from config.h
+    state.autopilot.pitchKp = AP_PITCH_KP;
+    state.autopilot.pitchKi = AP_PITCH_KI;
+    state.autopilot.pitchKd = AP_PITCH_KD;
+    state.autopilot.rollKp = AP_ROLL_KP;
+    state.autopilot.rollKi = AP_ROLL_KI;
+    state.autopilot.rollKd = AP_ROLL_KD;
+
+    pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
     pitchPid.SetOutputLimits(-5000, 5000);
-    pitchPid.SetSampleTime(20);  // 50 Hz
-    pitchPid.SetMode(1);  // 1=AUTOMATIC
+    pitchPid.SetSampleTime(0);
+    pitchPid.SetMode(1);
+
+    rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
+    rollPid.SetOutputLimits(-5000, 5000);
+    rollPid.SetSampleTime(0);
+    rollPid.SetMode(1);
 
     LOG_INFO("Autopilot module initialized");
+}
+
+void syncAPPidTunings() {
+    pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
+    rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
 }
 
 void setAPEnabled(bool enabled) {
@@ -74,11 +100,13 @@ void setAPEnabled(bool enabled) {
         }
 
         pitchPid.SetMode(1);  // 1=AUTOMATIC
+        rollPid.SetMode(1);
         LOG_INFO("Autopilot ON (RollHold + PitchHold)");
     } else {
         state.autopilot.horizontalMode = APHorizontalMode::Off;
         state.autopilot.verticalMode = APVerticalMode::Off;
         pitchPid.SetMode(0);  // 0=MANUAL
+        rollPid.SetMode(0);
         LOG_INFO("Autopilot OFF");
     }
 }
@@ -106,43 +134,50 @@ void setAPVerticalMode(APVerticalMode mode) {
 }
 
 void handleAP() {
-    if (!state.autopilot.enabled) {
-        return;
-    }
+    bool newData = state.simulator.dataUpdated;
+    state.simulator.dataUpdated = false;
 
-    // Check if AP can stay on
-    if (!canAutopilotBeOn()) {
+    // 1. Safety check: Turn AP OFF if conditions lost
+    if (state.autopilot.enabled && !canAutopilotBeOn()) {
         state.autopilot.enabled = false;
         state.autopilot.horizontalMode = APHorizontalMode::Off;
         state.autopilot.verticalMode = APVerticalMode::Off;
         pitchPid.SetMode(0);  // 0=MANUAL
+        rollPid.SetMode(0);
         LOG_WARN("Autopilot OFF (simulator data lost or speed too low)");
+    }
+
+    if (!state.autopilot.enabled) {
         return;
     }
 
-    // Horizontal: pass through sensor for now
-    setJoystickAxis(AXIS_CYCLIC_X, state.sensors.cyclicXCalibrated);
-
-    // Vertical: pitch hold via PID
+    // 2. Vertical: pitch hold via PID
     if (state.autopilot.verticalMode == APVerticalMode::PitchHold) {
-        pidSetpoint = state.autopilot.selectedPitch;
-        pidInput = state.simulator.pitch;
-
-        if (pitchPid.Compute()) {
-            // pidOutput is -5000..+5000, center 0. Joystick Y: 0=back, 10000=forward
-            // Pull back (pitch up) = lower Y. REVERSE PID: need pitch up -> negative output
-            int16_t cyclicY = (int16_t)(AXIS_CENTER + pidOutput);
-            if (cyclicY < AXIS_MIN) cyclicY = AXIS_MIN;
-            if (cyclicY > AXIS_MAX) cyclicY = AXIS_MAX;
-            setJoystickAxis(AXIS_CYCLIC_Y, cyclicY);
+        if (newData) {
+            pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
+            pitchSetpoint = state.autopilot.selectedPitch;
+            pitchInput = state.simulator.pitch;
+            pitchPid.Compute();
         }
-    } else {
-        // Other vertical modes: pass through for now
-        setJoystickAxis(AXIS_CYCLIC_Y, state.sensors.cyclicYCalibrated);
+        
+        int16_t cyclicY = (int16_t)(AXIS_CENTER + pitchOutput);
+        if (cyclicY < AXIS_MIN) cyclicY = AXIS_MIN;
+        if (cyclicY > AXIS_MAX) cyclicY = AXIS_MAX;
+        setJoystickAxis(AXIS_CYCLIC_Y, cyclicY);
     }
 
-    // Collective always from sensors
-    setJoystickAxis(AXIS_COLLECTIVE, state.sensors.collectiveCalibrated);
+    // 3. Horizontal: roll hold via PID
+    if (state.autopilot.horizontalMode == APHorizontalMode::RollHold) {
+        if (newData) {
+            rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
+            rollSetpoint = state.autopilot.selectedRoll;
+            rollInput = state.simulator.roll;
+            rollPid.Compute();
+        }
 
-    updateJoystick();
+        int16_t cyclicX = (int16_t)(AXIS_CENTER + rollOutput);
+        if (cyclicX < AXIS_MIN) cyclicX = AXIS_MIN;
+        if (cyclicX > AXIS_MAX) cyclicX = AXIS_MAX;
+        setJoystickAxis(AXIS_CYCLIC_X, cyclicX);
+    }
 }

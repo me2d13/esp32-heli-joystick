@@ -41,6 +41,14 @@ struct AutopilotState {
     float selectedPitch = 0.0f;    // degrees, captured when entering PitchHold
     float selectedRoll = 0.0f;     // degrees, captured when entering RollHold
 
+    // PID Tuning parameters (loaded from config.h initially)
+    float pitchKp = 0.0f;
+    float pitchKi = 0.0f;
+    float pitchKd = 0.0f;
+    float rollKp = 0.0f;
+    float rollKi = 0.0f;
+    float rollKd = 0.0f;
+
     // Flags: is the selected value currently active/armed?
     bool hasSelectedHeading = false;
     bool hasSelectedAltitude = false;
@@ -53,6 +61,7 @@ struct AutopilotState {
 
 struct SimulatorState {
     bool valid = false;           // Have we received data recently?
+    bool dataUpdated = false;     // Flag set to true when new data arrives, must be reset by consumer
     unsigned long lastUpdateMs = 0;  // Timestamp of last update
 
     float speed = 0.0f;           // knots or m/s

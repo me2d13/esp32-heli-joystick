@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 Heli Joystick</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <h1>🚁 ESP32 Heli Joystick</h1>
@@ -39,6 +41,103 @@
             </div>
             <div class="ap-controls">
                 <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+            </div>
+        </div>
+
+        <div class="card pid-card">
+            <div class="card-title">⚙️ PID Tuning</div>
+            <div class="pid-controls-grid">
+                <div class="pid-axis-label">Pitch</div>
+                <div class="pid-group">
+                    <label>Kp</label>
+                    <input type="number" id="kpInput" step="1" value="200">
+                </div>
+                <div class="pid-group">
+                    <label>Ki</label>
+                    <input type="number" id="kiInput" step="0.1" value="0">
+                </div>
+                <div class="pid-group">
+                    <label>Kd</label>
+                    <input type="number" id="kdInput" step="1" value="50">
+                </div>
+
+                <div class="pid-axis-label">Roll</div>
+                <div class="pid-group">
+                    <label>Kp</label>
+                    <input type="number" id="rollKpInput" step="1" value="200">
+                </div>
+                <div class="pid-group">
+                    <label>Ki</label>
+                    <input type="number" id="rollKiInput" step="0.1" value="0">
+                </div>
+                <div class="pid-group">
+                    <label>Kd</label>
+                    <input type="number" id="rollKdInput" step="1" value="50">
+                </div>
+            </div>
+            <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>
+        </div>
+
+        <div class="card sim-card">
+            <div class="card-title">🌐 Simulator Data</div>
+            <div class="sim-layout">
+                <div class="sim-main">
+                    <table class="sim-table">
+                        <tr>
+                            <th>Speed</th>
+                            <td id="simSpeed">--</td>
+                            <td>kt</td>
+                        </tr>
+                        <tr>
+                            <th>Altitude</th>
+                            <td id="simAlt">--</td>
+                            <td>ft</td>
+                        </tr>
+                        <tr>
+                            <th>Heading</th>
+                            <td id="simHdg">--</td>
+                            <td>°</td>
+                        </tr>
+                        <tr>
+                            <th>VS</th>
+                            <td id="simVS">--</td>
+                            <td>fpm</td>
+                        </tr>
+                        <tr>
+                            <th>Pitch</th>
+                            <td id="simPitchText">--</td>
+                            <td>°</td>
+                        </tr>
+                        <tr>
+                            <th>Roll</th>
+                            <td id="simRollText">--</td>
+                            <td>°</td>
+                        </tr>
+                        <tr>
+                            <th>Last Update</th>
+                            <td id="simLastUpdate">--</td>
+                            <td></td>
+                        </tr>
+                    </table>
+
+                    <div class="indicator-container horiz">
+                        <div class="indicator-label">Roll</div>
+                        <div class="bar-horiz">
+                            <div class="bar-highlight" id="rollAPTarget" style="display: none;"></div>
+                            <div class="bar-needle" id="rollNeedle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sim-side">
+                    <div class="indicator-container vert">
+                        <div class="indicator-label">Pitch</div>
+                        <div class="bar-vert">
+                            <div class="bar-highlight" id="pitchAPTarget" style="display: none;"></div>
+                            <div class="bar-needle" id="pitchNeedle"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -94,4 +193,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

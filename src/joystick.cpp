@@ -58,6 +58,8 @@ void initJoystick() {
     LOG_INFO("3 axes (Cyclic X, Cyclic Y, Collective) + 32 buttons");
 }
 
+static bool joystickDirty = true; // Start true to send initial state
+
 void setJoystickAxis(uint8_t axis, int16_t value) {
     if (axis >= JOYSTICK_AXIS_COUNT) return;
     
@@ -65,40 +67,62 @@ void setJoystickAxis(uint8_t axis, int16_t value) {
     if (value < AXIS_MIN) value = AXIS_MIN;
     if (value > AXIS_MAX) value = AXIS_MAX;
     
-    // Store in global state
+    // Check if value actually changed
+    int16_t* currentVal = nullptr;
     switch (axis) {
-        case AXIS_CYCLIC_X:
-            state.joystick.cyclicX = value;
-            Joystick.setXAxis(value);
-            break;
-        case AXIS_CYCLIC_Y:
-            state.joystick.cyclicY = value;
-            Joystick.setYAxis(value);
-            break;
-        case AXIS_COLLECTIVE:
-            state.joystick.collective = value;
-            Joystick.setZAxis(value);
-            break;
+        case AXIS_CYCLIC_X: currentVal = &state.joystick.cyclicX; break;
+        case AXIS_CYCLIC_Y: currentVal = &state.joystick.cyclicY; break;
+        case AXIS_COLLECTIVE: currentVal = &state.joystick.collective; break;
+    }
+
+    if (currentVal && *currentVal != value) {
+        *currentVal = value;
+        joystickDirty = true;
+        
+        // Update joystick internal state
+        if (axis == AXIS_CYCLIC_X) Joystick.setXAxis(value);
+        else if (axis == AXIS_CYCLIC_Y) Joystick.setYAxis(value);
+        else if (axis == AXIS_COLLECTIVE) Joystick.setZAxis(value);
     }
 }
 
 void setJoystickButton(uint8_t button, bool pressed) {
     if (button < JOYSTICK_BUTTON_COUNT) {
-        // Update global state
-        if (pressed) {
-            state.joystick.buttons |= (1UL << button);
-        } else {
-            state.joystick.buttons &= ~(1UL << button);
+        uint32_t mask = (1UL << button);
+        bool currentPressed = (state.joystick.buttons & mask) != 0;
+
+        if (currentPressed != pressed) {
+            // Update global state
+            if (pressed) {
+                state.joystick.buttons |= mask;
+            } else {
+                state.joystick.buttons &= ~mask;
+            }
+            
+            // Update joystick internal state
+            Joystick.setButton(button, pressed);
+            joystickDirty = true;
         }
-        
-        // Update joystick
-        Joystick.setButton(button, pressed);
     }
 }
 
+// Rate limit joystick updates to 100Hz (10ms)
+// Note: Errors in logs ("wait failed") can be ignored as long as joy.cpl works.
+// The dirty flag logic below helps minimize these by only sending on actual movement.
+static unsigned long lastHidSendMs = 0;
+#define HID_SEND_INTERVAL_MS 10
+
 void updateJoystick() {
-    // Send HID report
-    Joystick.sendState();
+    unsigned long now = millis();
+    if (now - lastHidSendMs >= HID_SEND_INTERVAL_MS) {
+        lastHidSendMs = now;
+        
+        // Only send if state has changed
+        if (joystickDirty) {
+            Joystick.sendState();
+            joystickDirty = false;
+        }
+    }
 }
 
 int16_t getJoystickAxis(uint8_t axis) {

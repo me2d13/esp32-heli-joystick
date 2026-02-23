@@ -112,11 +112,17 @@ static void processPacket(const uint8_t* packet) {
     
     // Update timestamp for validity timeout
     lastValidPacketTime = millis();
-    
-    // Update joystick
-    setJoystickAxis(AXIS_CYCLIC_X, axisX);
-    setJoystickAxis(AXIS_CYCLIC_Y, axisY);
-    updateJoystick();
+
+    // Update joystick values in state
+    // Roll (X) is only updated by sensor if AP is not holding it
+    if (!state.autopilot.enabled || state.autopilot.horizontalMode != APHorizontalMode::RollHold) {
+        setJoystickAxis(AXIS_CYCLIC_X, axisX);
+    }
+
+    // Pitch (Y) is only updated by sensor if AP is not holding it
+    if (!state.autopilot.enabled || state.autopilot.verticalMode != APVerticalMode::PitchHold) {
+        setJoystickAxis(AXIS_CYCLIC_Y, axisY);
+    }
 }
 
 static int16_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert) {

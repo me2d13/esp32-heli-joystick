@@ -22,9 +22,9 @@ function axisToXPercent(value) {
     return Math.max(0, Math.min(100, (value / AXIS_MAX) * 100));
 }
 
-// Map axis value (0-10000) to Y position % in box (0=back/bottom, 10000=fwd/top)
+// Map axis value (0-10000) to Y position % in box (0=forward/top, 10000=back/bottom)
 function axisToYPercent(value) {
-    return Math.max(0, Math.min(100, ((AXIS_MAX - value) / AXIS_MAX) * 100));
+    return Math.max(0, Math.min(100, (value / AXIS_MAX) * 100));
 }
 
 function updateCyclicXYPoint(element, x, y) {
@@ -56,17 +56,43 @@ function toggleAP() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: newState })
     })
-    .then(response => response.json())
-    .then(data => {
-        const ap = data.autopilot || {};
-        updateAutopilotDisplay(ap);
-        updateAPToggleButton(ap.enabled ?? false);
-    })
-    .catch(err => {
-        console.error('AP toggle failed:', err);
-    });
+        .then(response => response.json())
+        .then(data => {
+            const ap = data.autopilot || {};
+            updateAutopilotDisplay(ap);
+            updateAPToggleButton(ap.enabled ?? false);
+        })
+        .catch(err => {
+            console.error('AP toggle failed:', err);
+        });
 }
 
+function updatePID() {
+    const kp = parseFloat(document.getElementById('kpInput').value);
+    const ki = parseFloat(document.getElementById('kiInput').value);
+    const kd = parseFloat(document.getElementById('kdInput').value);
+    const rkp = parseFloat(document.getElementById('rollKpInput').value);
+    const rki = parseFloat(document.getElementById('rollKiInput').value);
+    const rkd = parseFloat(document.getElementById('rollKdInput').value);
+
+    fetch('/api/pid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            pitchKp: kp, pitchKi: ki, pitchKd: kd,
+            rollKp: rkp, rollKi: rki, rollKd: rkd
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('PID values updated for both axes');
+        })
+        .catch(err => {
+            console.error('PID update failed:', err);
+        });
+}
+
+let pidInited = false;
 function updateAutopilotDisplay(ap) {
     const lateralEl = document.getElementById('apLateral');
     const centerEl = document.getElementById('apCenter');
@@ -75,6 +101,17 @@ function updateAutopilotDisplay(ap) {
     const enabled = ap.enabled ?? false;
     const hMode = ap.horizontalMode ?? 'off';
     const vMode = ap.verticalMode ?? 'off';
+
+    // Update PID inputs once on load
+    if (!pidInited && ap.pitchKp !== undefined && ap.rollKp !== undefined) {
+        document.getElementById('kpInput').value = ap.pitchKp;
+        document.getElementById('kiInput').value = ap.pitchKi;
+        document.getElementById('kdInput').value = ap.pitchKd;
+        document.getElementById('rollKpInput').value = ap.rollKp;
+        document.getElementById('rollKiInput').value = ap.rollKi;
+        document.getElementById('rollKdInput').value = ap.rollKd;
+        pidInited = true;
+    }
 
     // Center: AP when enabled
     centerEl.textContent = enabled ? 'AP' : '--';
@@ -108,13 +145,13 @@ function connect() {
     const host = window.location.hostname;
     ws = new WebSocket('ws://' + host + ':81');
 
-    ws.onopen = function() {
+    ws.onopen = function () {
         document.getElementById('wsStatus').textContent = 'Connected';
         document.getElementById('wsStatus').className = 'status-value status-online';
         document.getElementById('connectionDot').className = 'connection-dot connected';
     };
 
-    ws.onclose = function() {
+    ws.onclose = function () {
         document.getElementById('wsStatus').textContent = 'Disconnected';
         document.getElementById('wsStatus').className = 'status-value status-offline';
         document.getElementById('connectionDot').className = 'connection-dot disconnected';
@@ -122,12 +159,12 @@ function connect() {
         setTimeout(connect, 2000);
     };
 
-    ws.onerror = function(err) {
+    ws.onerror = function (err) {
         console.error('WebSocket error:', err);
         ws.close();
     };
 
-    ws.onmessage = function(event) {
+    ws.onmessage = function (event) {
         try {
             const data = JSON.parse(event.data);
 
@@ -149,10 +186,12 @@ function connect() {
                 sensors.cyclicValid = sensors.cyclicValid ?? data.cyclicValid;
             }
 
-            // Autopilot display and toggle button
+            // Autopilot & Simulator display
             const ap = data.autopilot || {};
+            const sim = data.simulator || {};
             updateAutopilotDisplay(ap);
             updateAPToggleButton(ap.enabled);
+            updateSimulatorDisplay(sim, ap);
 
             // Cyclic X-Y: two points (sensor = stick position, joystick = values sent to PC)
             const sensorPoint = document.getElementById('sensorPoint');
@@ -242,11 +281,76 @@ updateCyclicXYPoint(document.getElementById('sensorPoint'), 5000, 5000);
 updateCyclicXYPoint(document.getElementById('joystickPoint'), 5000, 5000);
 updateCollectiveBar(5000);
 updateAutopilotDisplay({});
+updateSimulatorDisplay({}, {});
 updateAPToggleButton(false);
 
 // AP toggle button
 document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
 
+// PID Apply button
+document.getElementById('pidApplyBtn').addEventListener('click', updatePID);
+
 // Start connection and load logs
 connect();
 loadLogs();
+
+// Map simulator angle to percentage for indicators (range +/- 30 deg)
+function angleToPercent(angle, maxRange = 30) {
+    let p = (angle + maxRange) / (maxRange * 2) * 100;
+    return Math.max(0, Math.min(100, p));
+}
+
+function formatAge(ms) {
+    if (ms === undefined || ms < 0) return 'never';
+    if (ms < 1000) return ms + 'ms';
+    const sec = ms / 1000;
+    if (sec < 60) return sec.toFixed(1) + 's';
+    const min = sec / 60;
+    return min.toFixed(1) + 'm';
+}
+
+function updateSimulatorDisplay(sim, ap) {
+    // Table data
+    document.getElementById('simSpeed').textContent = sim.speed !== undefined ? sim.speed.toFixed(1) : '--';
+    document.getElementById('simAlt').textContent = sim.altitude !== undefined ? Math.round(sim.altitude) : '--';
+    document.getElementById('simHdg').textContent = sim.heading !== undefined ? Math.round(sim.heading) : '--';
+    document.getElementById('simVS').textContent = sim.verticalSpeed !== undefined ? Math.round(sim.verticalSpeed) : '--';
+    document.getElementById('simPitchText').textContent = sim.pitch !== undefined ? sim.pitch.toFixed(1) : '--';
+    document.getElementById('simRollText').textContent = sim.roll !== undefined ? sim.roll.toFixed(1) : '--';
+    document.getElementById('simLastUpdate').textContent = formatAge(sim.lastSimDataAgeMs);
+
+    // Indicators
+    const rollNeedle = document.getElementById('rollNeedle');
+    const pitchNeedle = document.getElementById('pitchNeedle');
+    const rollAPTarget = document.getElementById('rollAPTarget');
+    const pitchAPTarget = document.getElementById('pitchAPTarget');
+
+    if (sim.roll !== undefined) {
+        // Invert: left is positive in sim, we want left on indicator
+        rollNeedle.style.left = angleToPercent(-sim.roll, 45) + '%';
+    }
+    if (sim.pitch !== undefined) {
+        // Sim sends pitch up as negative, we want top of the bar for pitch up
+        pitchNeedle.style.top = angleToPercent(sim.pitch, 40) + '%';
+    }
+
+    if (ap.enabled) {
+        // Show targets if AP is holding specific angles
+        if (ap.horizontalMode === 'roll' && ap.selectedRoll !== undefined) {
+            rollAPTarget.style.display = 'block';
+            rollAPTarget.style.left = angleToPercent(-ap.selectedRoll, 45) + '%';
+        } else {
+            rollAPTarget.style.display = 'none';
+        }
+
+        if (ap.verticalMode === 'pitch' && ap.selectedPitch !== undefined) {
+            pitchAPTarget.style.display = 'block';
+            pitchAPTarget.style.top = angleToPercent(ap.selectedPitch, 40) + '%';
+        } else {
+            pitchAPTarget.style.display = 'none';
+        }
+    } else {
+        rollAPTarget.style.display = 'none';
+        pitchAPTarget.style.display = 'none';
+    }
+}
