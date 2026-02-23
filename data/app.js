@@ -67,6 +67,28 @@ function toggleAP() {
         });
 }
 
+function adjustAPTarget(axis, delta) {
+    // Current targets from state are updated in updateAutopilotDisplay
+    const targets = {
+        pitch: parseFloat(document.getElementById('apVertical').dataset.value || 0),
+        roll: parseFloat(document.getElementById('apLateral').dataset.value || 0)
+    };
+
+    if (axis === 'pitch') targets.pitch += delta;
+    if (axis === 'roll') targets.roll += delta;
+
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            selectedPitch: targets.pitch,
+            selectedRoll: targets.roll
+        })
+    })
+        .then(response => response.json())
+        .catch(err => console.error('AP target update failed:', err));
+}
+
 function updatePID() {
     const kp = parseFloat(document.getElementById('kpInput').value);
     const ki = parseFloat(document.getElementById('kiInput').value);
@@ -117,9 +139,12 @@ function updateAutopilotDisplay(ap) {
     centerEl.textContent = enabled ? 'AP' : '--';
     centerEl.classList.toggle('inactive', !enabled);
 
-    // Left: lateral mode (ROLL, HDG, or --)
+    // Display current/target values (for debugging target tracking)
+    verticalEl.dataset.value = ap.selectedPitch || 0;
+    lateralEl.dataset.value = ap.selectedRoll || 0;
+
     let lateralText = '--';
-    if (enabled && hMode === 'roll') lateralText = 'ROLL';
+    if (enabled && hMode === 'roll') lateralText = 'ROLL ' + Math.round(ap.selectedRoll) + '°';
     else if (enabled && hMode === 'hdg') {
         const hdg = ap.selectedHeading ?? 0;
         lateralText = 'HDG ' + Math.round(hdg);
@@ -129,7 +154,7 @@ function updateAutopilotDisplay(ap) {
 
     // Right: vertical mode (PITCH, VS, ALTS, or --)
     let verticalText = '--';
-    if (enabled && vMode === 'pitch') verticalText = 'PITCH';
+    if (enabled && vMode === 'pitch') verticalText = 'PITCH ' + Math.round(ap.selectedPitch) + '°';
     else if (enabled && vMode === 'vs') {
         const vs = ap.selectedVerticalSpeed ?? 0;
         verticalText = 'VS ' + Math.round(vs);
@@ -289,6 +314,12 @@ document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
 
 // PID Apply button
 document.getElementById('pidApplyBtn').addEventListener('click', updatePID);
+
+// AP Target Adjustment buttons (D-Pad)
+document.getElementById('apPitchUpBtn').addEventListener('click', () => adjustAPTarget('pitch', -1));   // Pitch UP = lower degree (negative)
+document.getElementById('apPitchDownBtn').addEventListener('click', () => adjustAPTarget('pitch', 1));   // Pitch DOWN = higher degree (positive)
+document.getElementById('apRollLeftBtn').addEventListener('click', () => adjustAPTarget('roll', 1));     // Roll LEFT = positive (?) check sim convention
+document.getElementById('apRollRightBtn').addEventListener('click', () => adjustAPTarget('roll', -1));   // Roll RIGHT = negative
 
 // Start connection and load logs
 connect();

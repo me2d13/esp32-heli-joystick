@@ -300,6 +300,12 @@ void initWebServer() {
                 if (doc.containsKey("enabled")) {
                     setAPEnabled(doc["enabled"].as<bool>());
                 }
+                if (doc.containsKey("selectedPitch")) {
+                    state.autopilot.selectedPitch = doc["selectedPitch"].as<float>();
+                }
+                if (doc.containsKey("selectedRoll")) {
+                    state.autopilot.selectedRoll = doc["selectedRoll"].as<float>();
+                }
                 // Return updated state
                 StaticJsonDocument<512> stateDoc;
                 buildStateJson(stateDoc);
