@@ -14,80 +14,66 @@
         <p class="subtitle">Real-time Controller Monitor</p>
 
         <div class="card">
-            <div class="card-title">
-                <span class="connection-dot" id="connectionDot"></span>
-                System Status
+            <div class="card-title">📊 Axes</div>
+
+            <div class="axes-layout">
+                <div class="cyclic-xy-section">
+                    <div class="cyclic-xy-label">Cyclic (X-Y)</div>
+                    <div class="cyclic-xy-box" id="cyclicXYBox">
+                        <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
+                        <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
+                    </div>
+                    <div class="cyclic-xy-legend">
+                        <span class="legend-sensor">● Sensor</span>
+                        <span class="legend-joystick">● Joystick</span>
+                    </div>
+                </div>
+                <div class="collective-section">
+                    <div class="collective-label">Collective</div>
+                    <div class="collective-bar-container">
+                        <div class="collective-bar-fill" id="collectiveBar"></div>
+                    </div>
+                    <div class="collective-value" id="collectiveValue">5000</div>
+                </div>
             </div>
-            <div class="status-row">
-                <span class="status-label">WebSocket</span>
-                <span class="status-value" id="wsStatus">Connecting...</span>
+
+            <div class="raw-values">
+                <div class="raw-value">Raw X: <span id="rawX">--</span></div>
+                <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
+                <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
             </div>
-            <div class="status-row">
-                <span class="status-label">Cyclic Data</span>
-                <span class="status-value" id="cyclicStatus">--</span>
-            </div>
-            <div class="status-row">
-                <span class="status-label">Update Rate</span>
-                <span class="status-value" id="updateRate">-- Hz</span>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔘 Buttons (1–32)</div>
+            <div class="buttons-grid" id="buttonsGrid">
             </div>
         </div>
 
         <div class="card ap-card">
             <div class="card-title">Autopilot</div>
-            <div class="ap-pfd">
-                <div class="ap-lateral" id="apLateral">--</div>
-                <div class="ap-center" id="apCenter">--</div>
-                <div class="ap-vertical" id="apVertical">--</div>
-            </div>
-            <div class="ap-controls">
-                <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
-                <div class="ap-dpad">
-                    <div class="dpad-row">
-                        <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+            <div class="ap-layout">
+                <div class="ap-pfd">
+                    <div class="ap-lateral" id="apLateral">--</div>
+                    <div class="ap-center" id="apCenter">--</div>
+                    <div class="ap-vertical" id="apVertical">--</div>
+                </div>
+                <div class="ap-controls">
+                    <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+                    <div class="ap-dpad">
+                        <div class="dpad-row">
+                            <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                        </div>
+                        <div class="dpad-row">
+                            <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
+                            <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
+                        </div>
+                        <div class="dpad-row">
+                            <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                        </div>
                     </div>
-                    <div class="dpad-row">
-                        <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
-                        <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
-                    </div>
-                    <div class="dpad-row">
-                        <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card pid-card">
-            <div class="card-title">⚙️ PID Tuning</div>
-            <div class="pid-controls-grid">
-                <div class="pid-axis-label">Pitch</div>
-                <div class="pid-group">
-                    <label>Kp</label>
-                    <input type="number" id="kpInput" step="1" value="200">
-                </div>
-                <div class="pid-group">
-                    <label>Ki</label>
-                    <input type="number" id="kiInput" step="0.1" value="0">
-                </div>
-                <div class="pid-group">
-                    <label>Kd</label>
-                    <input type="number" id="kdInput" step="1" value="50">
-                </div>
-
-                <div class="pid-axis-label">Roll</div>
-                <div class="pid-group">
-                    <label>Kp</label>
-                    <input type="number" id="rollKpInput" step="1" value="200">
-                </div>
-                <div class="pid-group">
-                    <label>Ki</label>
-                    <input type="number" id="rollKiInput" step="0.1" value="0">
-                </div>
-                <div class="pid-group">
-                    <label>Kd</label>
-                    <input type="number" id="rollKdInput" step="1" value="50">
                 </div>
             </div>
-            <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>
         </div>
 
         <div class="card sim-card">
@@ -153,40 +139,56 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-title">📊 Axes</div>
-
-            <div class="axes-layout">
-                <div class="cyclic-xy-section">
-                    <div class="cyclic-xy-label">Cyclic (X-Y)</div>
-                    <div class="cyclic-xy-box" id="cyclicXYBox">
-                        <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
-                        <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
-                    </div>
-                    <div class="cyclic-xy-legend">
-                        <span class="legend-sensor">● Sensor</span>
-                        <span class="legend-joystick">● Joystick</span>
-                    </div>
+        <div class="card pid-card">
+            <div class="card-title">⚙️ PID Tuning</div>
+            <div class="pid-controls-grid">
+                <div class="pid-axis-label">Pitch</div>
+                <div class="pid-group">
+                    <label>Kp</label>
+                    <input type="number" id="kpInput" step="1" value="200">
                 </div>
-                <div class="collective-section">
-                    <div class="collective-label">Collective</div>
-                    <div class="collective-bar-container">
-                        <div class="collective-bar-fill" id="collectiveBar"></div>
-                    </div>
-                    <div class="collective-value" id="collectiveValue">5000</div>
+                <div class="pid-group">
+                    <label>Ki</label>
+                    <input type="number" id="kiInput" step="0.1" value="0">
+                </div>
+                <div class="pid-group">
+                    <label>Kd</label>
+                    <input type="number" id="kdInput" step="1" value="50">
+                </div>
+
+                <div class="pid-axis-label">Roll</div>
+                <div class="pid-group">
+                    <label>Kp</label>
+                    <input type="number" id="rollKpInput" step="1" value="200">
+                </div>
+                <div class="pid-group">
+                    <label>Ki</label>
+                    <input type="number" id="rollKiInput" step="0.1" value="0">
+                </div>
+                <div class="pid-group">
+                    <label>Kd</label>
+                    <input type="number" id="rollKdInput" step="1" value="50">
                 </div>
             </div>
-
-            <div class="raw-values">
-                <div class="raw-value">Raw X: <span id="rawX">--</span></div>
-                <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
-                <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
-            </div>
+            <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>
         </div>
 
         <div class="card">
-            <div class="card-title">🔘 Buttons (1–32)</div>
-            <div class="buttons-grid" id="buttonsGrid">
+            <div class="card-title">
+                <span class="connection-dot" id="connectionDot"></span>
+                System Status
+            </div>
+            <div class="status-row">
+                <span class="status-label">WebSocket</span>
+                <span class="status-value" id="wsStatus">Connecting...</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Cyclic Data</span>
+                <span class="status-value" id="cyclicStatus">--</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Update Rate</span>
+                <span class="status-value" id="updateRate">-- Hz</span>
             </div>
         </div>
 

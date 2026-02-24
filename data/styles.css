@@ -213,39 +213,46 @@ h1 {
 }
 
 /* Autopilot section - PFD style (Garmin-like) */
-.ap-card .ap-pfd {
+.ap-layout {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.ap-pfd {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #0a0a0a;
     border: 1px solid #1a3d1a;
     border-radius: 8px;
-    padding: 12px 20px;
-    min-height: 48px;
+    padding: 8px 16px;
+    min-height: 40px;
 }
 
 .ap-lateral,
 .ap-center,
 .ap-vertical {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 1em;
+    font-size: 0.9em;
     font-weight: 600;
     color: #00cc44;
 }
 
 .ap-lateral {
     text-align: left;
-    min-width: 80px;
+    min-width: 70px;
 }
 
 .ap-center {
     text-align: center;
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
 
 .ap-vertical {
     text-align: right;
-    min-width: 80px;
+    min-width: 70px;
 }
 
 .ap-pfd .inactive {
@@ -253,17 +260,18 @@ h1 {
 }
 
 .ap-controls {
+    flex: 0 0 auto;
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
 }
 
 .ap-btn {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: 6px;
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9em;
+    font-size: 0.85em;
     font-weight: 600;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -273,6 +281,7 @@ h1 {
 .ap-toggle {
     background: rgba(255, 255, 255, 0.1);
     color: #8892b0;
+    min-width: 80px;
 }
 
 .ap-toggle.on {
@@ -285,35 +294,28 @@ h1 {
     opacity: 0.9;
 }
 
-/* AP Controls */
-.ap-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-}
-
+/* AP Controls D-Pad */
 .ap-dpad {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
     align-items: center;
 }
 
 .dpad-row {
     display: flex;
-    gap: 5px;
+    gap: 3px;
     justify-content: center;
 }
 
 .dpad-btn {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
