@@ -60,6 +60,7 @@
                 </div>
                 <div class="ap-controls">
                     <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+                    <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
                     <div class="ap-dpad">
                         <div class="dpad-row">
                             <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
@@ -73,8 +74,18 @@
                         </div>
                     </div>
                 </div>
+            </div> <!-- End ap-layout -->
+            <div class="ap-extra-controls">
+                <div class="ap-input-group">
+                    <label>Selected Heading</label>
+                    <div class="ap-slider-row">
+                        <input type="range" id="hdgSlider" min="0" max="359" value="0">
+                        <input type="number" id="hdgInput" min="0" max="359" value="0">
+                        <span class="unit">°</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        </div> <!-- End ap-card -->
 
         <div class="card sim-card">
             <div class="card-title">🌐 Simulator Data</div>
@@ -168,6 +179,12 @@
                 <div class="pid-group">
                     <label>Kd</label>
                     <input type="number" id="rollKdInput" step="1" value="50">
+                </div>
+
+                <div class="pid-axis-label">Nav</div>
+                <div class="pid-group">
+                    <label>Hdg Kp</label>
+                    <input type="number" id="hdgKpInput" step="0.1" value="1.5">
                 </div>
             </div>
             <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>

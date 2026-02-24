@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "joystick.h"
 #include <PID_v1.h>
+#include "buzzer.h"
 
 static bool isSimulatorDataValid() {
     if (state.simulator.lastUpdateMs == 0) {
@@ -48,16 +49,17 @@ void initAP() {
     state.autopilot.rollKp = AP_ROLL_KP;
     state.autopilot.rollKi = AP_ROLL_KI;
     state.autopilot.rollKd = AP_ROLL_KD;
+    state.autopilot.headingKp = AP_HEADING_KP;
 
     pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
     pitchPid.SetOutputLimits(-5000, 5000);
     pitchPid.SetSampleTime(0);
-    pitchPid.SetMode(1);
+    pitchPid.SetMode(0); // Start in MANUAL
 
     rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
     rollPid.SetOutputLimits(-5000, 5000);
     rollPid.SetSampleTime(0);
-    rollPid.SetMode(1);
+    rollPid.SetMode(0); // Start in MANUAL
 
     LOG_INFO("Autopilot module initialized");
 }
@@ -99,7 +101,12 @@ void setAPEnabled(bool enabled) {
             state.autopilot.selectedPitch = 0.0f;
         }
 
-        pitchPid.SetMode(1);  // 1=AUTOMATIC
+        // Initialize PID outputs to current physical stick positions for "bumpless" transfer
+        // This prevents the "kick" when AP first takes over
+        pitchOutput = (double)(state.joystick.cyclicY - AXIS_CENTER);
+        rollOutput = (double)(state.joystick.cyclicX - AXIS_CENTER);
+
+        pitchPid.SetMode(1);  // 1=AUTOMATIC - library will re-init I-term based on current Input/Setpoint/Output
         rollPid.SetMode(1);
         LOG_INFO("Autopilot ON (RollHold + PitchHold)");
     } else {
@@ -118,6 +125,9 @@ void setAPHorizontalMode(APHorizontalMode mode) {
         state.autopilot.selectedRoll = state.simulator.roll;
     } else if (mode == APHorizontalMode::HeadingHold) {
         state.autopilot.hasSelectedHeading = true;
+        if (state.simulator.valid) {
+            state.autopilot.selectedHeading = state.simulator.heading;
+        }
     }
 }
 
@@ -144,6 +154,7 @@ void handleAP() {
         state.autopilot.verticalMode = APVerticalMode::Off;
         pitchPid.SetMode(0);  // 0=MANUAL
         rollPid.SetMode(0);
+        tripleBeep(100, 50);  // Alert pilot of safety disconnect
         LOG_WARN("Autopilot OFF (simulator data lost or speed too low)");
     }
 
@@ -166,11 +177,35 @@ void handleAP() {
         setJoystickAxis(AXIS_CYCLIC_Y, cyclicY);
     }
 
-    // 3. Horizontal: roll hold via PID
-    if (state.autopilot.horizontalMode == APHorizontalMode::RollHold) {
+    // 3. Horizontal: roll hold or heading hold
+    if (state.autopilot.horizontalMode == APHorizontalMode::RollHold || 
+        state.autopilot.horizontalMode == APHorizontalMode::HeadingHold) {
+        
         if (newData) {
+            float targetRoll = state.autopilot.selectedRoll;
+
+            if (state.autopilot.horizontalMode == APHorizontalMode::HeadingHold) {
+                // Outer Loop: Heading -> Target Roll
+                // Inverted sign to fix direction: Current - Target (or Target - Current with negative gain)
+                float headingError = state.simulator.heading - state.autopilot.selectedHeading;
+                
+                // Wrap to shortest turn (-180 to 180)
+                while (headingError > 180.0f) headingError -= 360.0f;
+                while (headingError < -180.0f) headingError += 360.0f;
+
+                // Calculate requested bank (P-controller)
+                targetRoll = headingError * state.autopilot.headingKp;
+
+                // Clamp to safe limits
+                if (targetRoll > AP_MAX_BANK_ANGLE) targetRoll = AP_MAX_BANK_ANGLE;
+                if (targetRoll < -AP_MAX_BANK_ANGLE) targetRoll = -AP_MAX_BANK_ANGLE;
+
+                // Update selectedRoll for telemetry display (indicator on web)
+                state.autopilot.selectedRoll = targetRoll;
+            }
+
             rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);
-            rollSetpoint = state.autopilot.selectedRoll;
+            rollSetpoint = targetRoll;
             rollInput = state.simulator.roll;
             rollPid.Compute();
         }

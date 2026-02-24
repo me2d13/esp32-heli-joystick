@@ -325,6 +325,61 @@ h1 {
     color: #1a1a2e;
 }
 
+.ap-mode-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #8892b0;
+    min-width: 60px;
+}
+
+.ap-mode-btn.on {
+    background: #64ffda;
+    color: #1a1a2e;
+    border-color: #64ffda;
+}
+
+.ap-extra-controls {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ap-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ap-input-group label {
+    font-size: 0.8em;
+    color: #8892b0;
+    text-transform: uppercase;
+}
+
+.ap-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ap-slider-row input[type="range"] {
+    flex: 1;
+}
+
+.ap-slider-row input[type="number"] {
+    width: 60px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #64ffda;
+    padding: 4px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.ap-slider-row .unit {
+    color: #8892b0;
+    font-size: 0.9em;
+}
+
 /* PID Tuning section */
 .pid-controls-grid {
     display: grid;

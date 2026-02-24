@@ -129,6 +129,10 @@
 #define AP_ROLL_KI                 10.0f
 #define AP_ROLL_KD                  0.0f
 
+// Heading navigation (Outer loop)
+#define AP_HEADING_KP              1.0f   // Bank angle per degree of heading error
+#define AP_MAX_BANK_ANGLE          15.0f  // Max bank during turns (degrees)
+
 /*
                                                                               
                             ┌─────────────────┐                               

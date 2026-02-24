@@ -166,6 +166,7 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["rollKp"] = state.autopilot.rollKp;
     autopilot["rollKi"] = state.autopilot.rollKi;
     autopilot["rollKd"] = state.autopilot.rollKd;
+    autopilot["headingKp"] = state.autopilot.headingKp;
 
     JsonObject simulator = doc.createNestedObject("simulator");
     simulator["speed"] = state.simulator.speed;
@@ -300,6 +301,16 @@ void initWebServer() {
                 if (doc.containsKey("enabled")) {
                     setAPEnabled(doc["enabled"].as<bool>());
                 }
+                if (doc.containsKey("horizontalMode")) {
+                    String hMode = doc["horizontalMode"].as<String>();
+                    if (hMode == "off") setAPHorizontalMode(APHorizontalMode::Off);
+                    else if (hMode == "roll") setAPHorizontalMode(APHorizontalMode::RollHold);
+                    else if (hMode == "hdg") setAPHorizontalMode(APHorizontalMode::HeadingHold);
+                }
+                if (doc.containsKey("selectedHeading")) {
+                    state.autopilot.selectedHeading = doc["selectedHeading"].as<float>();
+                    state.autopilot.hasSelectedHeading = true;
+                }
                 if (doc.containsKey("selectedPitch")) {
                     state.autopilot.selectedPitch = doc["selectedPitch"].as<float>();
                 }
@@ -349,6 +360,10 @@ void initWebServer() {
                 }
                 if (doc.containsKey("rollKd")) {
                     state.autopilot.rollKd = doc["rollKd"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("headingKp")) {
+                    state.autopilot.headingKp = doc["headingKp"].as<float>();
                     changed = true;
                 }
                 

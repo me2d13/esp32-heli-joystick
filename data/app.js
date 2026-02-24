@@ -67,6 +67,34 @@ function toggleAP() {
         });
 }
 
+function toggleHDG() {
+    const btn = document.getElementById('apHdgBtn');
+    if (!btn) return;
+    const currentlyOn = btn.classList.contains('on');
+    const newMode = currentlyOn ? 'roll' : 'hdg';
+
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ horizontalMode: newMode })
+    })
+        .then(response => response.json())
+        .then(data => {
+            updateAutopilotDisplay(data.autopilot || {});
+        })
+        .catch(err => console.error('HDG toggle failed:', err));
+}
+
+function updateHeading(value) {
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedHeading: parseFloat(value) })
+    })
+        .then(response => response.json())
+        .catch(err => console.error('Heading update failed:', err));
+}
+
 function adjustAPTarget(axis, delta) {
     // Current targets from state are updated in updateAutopilotDisplay
     const targets = {
@@ -96,13 +124,15 @@ function updatePID() {
     const rkp = parseFloat(document.getElementById('rollKpInput').value);
     const rki = parseFloat(document.getElementById('rollKiInput').value);
     const rkd = parseFloat(document.getElementById('rollKdInput').value);
+    const hkp = parseFloat(document.getElementById('hdgKpInput').value);
 
     fetch('/api/pid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             pitchKp: kp, pitchKi: ki, pitchKd: kd,
-            rollKp: rkp, rollKi: rki, rollKd: rkd
+            rollKp: rkp, rollKi: rki, rollKd: rkd,
+            headingKp: hkp
         })
     })
         .then(response => response.json())
@@ -132,8 +162,16 @@ function updateAutopilotDisplay(ap) {
         document.getElementById('rollKpInput').value = ap.rollKp;
         document.getElementById('rollKiInput').value = ap.rollKi;
         document.getElementById('rollKdInput').value = ap.rollKd;
+        document.getElementById('hdgKpInput').value = ap.headingKp || 1.5;
         pidInited = true;
     }
+
+    // Update HDG controls
+    const hdgBtn = document.getElementById('apHdgBtn');
+    if (hdgBtn) hdgBtn.classList.toggle('on', hMode === 'hdg');
+
+    document.getElementById('hdgSlider').value = Math.round(ap.selectedHeading || 0);
+    document.getElementById('hdgInput').value = Math.round(ap.selectedHeading || 0);
 
     // Center: AP when enabled
     centerEl.textContent = enabled ? 'AP' : '--';
@@ -321,6 +359,24 @@ document.getElementById('apPitchDownBtn').addEventListener('click', () => adjust
 document.getElementById('apRollLeftBtn').addEventListener('click', () => adjustAPTarget('roll', 1));     // Roll LEFT = positive (?) check sim convention
 document.getElementById('apRollRightBtn').addEventListener('click', () => adjustAPTarget('roll', -1));   // Roll RIGHT = negative
 
+// Mode controls
+document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
+document.getElementById('apHdgBtn').addEventListener('click', toggleHDG);
+
+// Heading adjustment
+const hdgSlider = document.getElementById('hdgSlider');
+const hdgInput = document.getElementById('hdgInput');
+
+hdgSlider.addEventListener('input', (e) => {
+    hdgInput.value = e.target.value;
+    updateHeading(e.target.value);
+});
+
+hdgInput.addEventListener('change', (e) => {
+    hdgSlider.value = e.target.value;
+    updateHeading(e.target.value);
+});
+
 // Start connection and load logs
 connect();
 loadLogs();
@@ -366,15 +422,18 @@ function updateSimulatorDisplay(sim, ap) {
     }
 
     if (ap.enabled) {
+        const hMode = ap.horizontalMode || 'off';
+        const vMode = ap.verticalMode || 'off';
+
         // Show targets if AP is holding specific angles
-        if (ap.horizontalMode === 'roll' && ap.selectedRoll !== undefined) {
+        if ((hMode === 'roll' || hMode === 'hdg') && ap.selectedRoll !== undefined) {
             rollAPTarget.style.display = 'block';
             rollAPTarget.style.left = angleToPercent(-ap.selectedRoll, 45) + '%';
         } else {
             rollAPTarget.style.display = 'none';
         }
 
-        if (ap.verticalMode === 'pitch' && ap.selectedPitch !== undefined) {
+        if (vMode === 'pitch' && ap.selectedPitch !== undefined) {
             pitchAPTarget.style.display = 'block';
             pitchAPTarget.style.top = angleToPercent(ap.selectedPitch, 40) + '%';
         } else {

@@ -48,6 +48,7 @@ struct AutopilotState {
     float rollKp = 0.0f;
     float rollKi = 0.0f;
     float rollKd = 0.0f;
+    float headingKp = 0.0f;
 
     // Flags: is the selected value currently active/armed?
     bool hasSelectedHeading = false;
