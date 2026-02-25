@@ -39,13 +39,19 @@ State is centralized in a composed structure (`AppState`) with four logical grou
 
 **Vertical:**
 - `Off` – Manual
-- `PitchHold` – Hold current pitch
-- `VerticalSpeed` – Hold `selectedVerticalSpeed`
+- `PitchHold` – Hold current pitch (inner loop: pitch PID)
+- `VerticalSpeed` – Hold `selectedVerticalSpeed` (outer loop: VS error → target pitch → pitch PID)
 - `AltitudeHold` – Hold `selectedAltitude` (future)
 
 ### Selected Values
 
 For hold modes that need a target: `selectedHeading`, `selectedAltitude`, `selectedVerticalSpeed` with corresponding `hasSelected*` flags when the value is armed/active.
+
+### Tuning Parameters
+
+- **Pitch/Roll PID**: `pitchKp`, `pitchKi`, `pitchKd`, `rollKp`, `rollKi`, `rollKd` – inner loop gains
+- **Heading (outer loop)**: `headingKp` – bank angle per degree of heading error (tunable via web)
+- **Vertical Speed (outer loop)**: `vsKp` – pitch angle per fpm of VS error (tunable via web)
 
 ### Data Representation
 
@@ -57,10 +63,10 @@ For hold modes that need a target: `selectedHeading`, `selectedAltitude`, `selec
 
 Collective is included in `SensorState` and `JoystickState` for web monitoring, but **is not part of autopilot logic** (for now). When AP is on, cyclic X/Y are computed by the autopilot; collective is always passed through from sensors.
 
-### Usage (Planned)
+### Usage
 
 - **Autopilot logic**: Reads `simulator`, `sensors`, `autopilot`; writes `joystick.cyclicX`, `joystick.cyclicY` (collective unchanged)
-- **Web API**: Serializes full `AppState` (or subgroups) for dashboard display
+- **Web API**: Serializes full `AppState` (or subgroups) for dashboard display; POST endpoints for mode changes and tuning
 
 ---
 
@@ -72,17 +78,25 @@ Collective is included in `SensorState` and `JoystickState` for web monitoring, 
 - [x] Web interface refactored to LittleFS static files
 - [x] This document (AUTOPILOT.md)
 - [x] Global state integrated: cyclic_serial, collective, joystick now use `state`
+- [x] Simulator data receiver (simulator_serial.cpp)
+- [x] AP control logic: PitchHold, RollHold, HeadingHold, VerticalSpeed
+- [x] Real-time PID tuning via web (pitch, roll, headingKp, vsKp)
 
 ### Pending
 
-- [ ] Simulator data receiver – **DONE** (simulator_serial.cpp)
-- [ ] Actual AP control logic – **DONE** (pitch hold via PID)
+- [ ] AltitudeHold mode (future)
 
 ### API
 
-- **GET /api/state** – Returns complete state as JSON: `{ sensors, joystick, autopilot }`
-- **POST /api/autopilot** – Set AP state. Body: `{ "enabled": true|false }`. Returns updated state.
-- **WebSocket (port 81)** – Broadcasts same structure for real-time updates
+- **GET /api/state** – Returns complete state as JSON: `{ sensors, joystick, autopilot, simulator }`
+- **POST /api/autopilot** – Set AP state. Body may include:
+  - `enabled` (bool)
+  - `horizontalMode` ("off" | "roll" | "hdg")
+  - `verticalMode` ("off" | "pitch" | "vs" | "alts")
+  - `selectedHeading`, `selectedPitch`, `selectedRoll`, `selectedVerticalSpeed` (float)
+  - Returns updated state.
+- **POST /api/pid** – Update PID gains. Body: `pitchKp`, `pitchKi`, `pitchKd`, `rollKp`, `rollKi`, `rollKd`, `headingKp`, `vsKp`. Returns updated state.
+- **WebSocket (port 81)** – Broadcasts full state for real-time updates
 
 ### Simulator Serial Protocol
 
@@ -115,11 +129,22 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 
 ### AP Module (ap.cpp)
 
-- `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`, `handleAP()`
+- `initAP()`, `setAPEnabled(bool)`, `setAPHorizontalMode()`, `setAPVerticalMode()`, `handleAP()`, `syncAPPidTunings()`
 - `canAutopilotBeOn()`: simulator data valid + speed ≥ `AP_MIN_SPEED_KNOTS` (10)
 - When turning ON: defaults to RollHold + PitchHold, captures pitch/roll from simulator (or 0)
 - AP enable rejected if `!canAutopilotBeOn()`
-- `handleAP()`: if AP on, checks `canAutopilotBeOn()` – turns off if false; pitch hold via PID (br3ttb/PID); cyclic X = sensor pass-through; collective = sensor pass-through
+- `handleAP()`:
+  - Safety: turns AP off if `!canAutopilotBeOn()` (triple beep alert)
+  - **Vertical**: PitchHold (pitch PID) or VerticalSpeed (outer loop: VS error × vsKp → target pitch → pitch PID). Cyclic Y from PID when either mode active.
+  - **Horizontal**: RollHold or HeadingHold (outer loop: heading error × headingKp → target roll → roll PID). Cyclic X from roll PID when either mode active.
+  - Collective always pass-through from sensors
+- **cyclic_serial**: Does NOT update joystick cyclic X when AP controls roll (RollHold or HeadingHold); does NOT update cyclic Y when AP controls pitch (PitchHold or VerticalSpeed)
+
+### Config (config.h)
+
+- `AP_PITCH_KP/KI/KD`, `AP_ROLL_KP/KI/KD` – inner loop defaults
+- `AP_HEADING_KP`, `AP_MAX_BANK_ANGLE` – heading outer loop
+- `AP_VS_KP`, `AP_MAX_PITCH_ANGLE` – vertical speed outer loop
 
 ---
 
@@ -134,4 +159,7 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 | (simulator) | Added simulator_serial.cpp/h. JSON over Serial2 (GPIO43/44), newline-separated. Fields: spd, alt, pitch, roll, hdg, vs. Updates state.simulator + lastUpdateMs. |
 | (ap logic) | handleAP() in main loop. canAutopilotBeOn() = simulator valid + speed ≥ 10 kt. Pitch hold via PID (Kp=200, Kd=50). Cyclic X from sensors, cyclic Y from PID. |
 | (ap stability)| Gated sensor connection: Sensor modules now update joystick axes directly ONLY if that axis is not being controlled by AP. handleAP is now the ONLY place that touches the Pitch axis during PitchHold. Roll and Collective remain directly connected to sensors to maintain full manual control. |
-| (pid tuning) | Added real-time PID tuning via web interface. POST /api/pid endpoint updates pitchKp, pitchKi, pitchKd in global state. Controller update rate synced with simulator data. |
+| (pid tuning) | Added real-time PID tuning via web interface. POST /api/pid endpoint updates pitchKp, pitchKi, pitchKd, rollKp, rollKi, rollKd, headingKp in global state. Controller update rate synced with simulator data. |
+| (heading hold) | HeadingHold mode: outer loop (heading error × headingKp → target roll) feeds roll PID. headingKp tunable via web. |
+| (vs mode) | VerticalSpeed mode: outer loop (VS error × vsKp → target pitch) feeds pitch PID. selectedVerticalSpeed from web (sync/adjust). cyclic_serial blocks pitch pass-through when VS active. |
+| (vs tuning) | vsKp tunable via web (PID Tuning section). POST /api/pid accepts vsKp. |
