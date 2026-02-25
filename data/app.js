@@ -533,7 +533,7 @@ function updateSimulatorDisplay(sim, ap) {
             rollAPTarget.style.display = 'none';
         }
 
-        if (vMode === 'pitch' && ap.selectedPitch !== undefined) {
+        if ((vMode === 'pitch' || vMode === 'vs') && ap.selectedPitch !== undefined) {
             pitchAPTarget.style.display = 'block';
             pitchAPTarget.style.top = angleToPercent(ap.selectedPitch, 40) + '%';
         } else {

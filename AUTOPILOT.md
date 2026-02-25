@@ -139,6 +139,10 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
   - **Horizontal**: RollHold or HeadingHold (outer loop: heading error × headingKp → target roll → roll PID). Cyclic X from roll PID when either mode active.
   - Collective always pass-through from sensors
 - **cyclic_serial**: Does NOT update joystick cyclic X when AP controls roll (RollHold or HeadingHold); does NOT update cyclic Y when AP controls pitch (PitchHold or VerticalSpeed)
+- **PI Control (VS)**: Vertical Speed uses a PI controller (Kp=0.02, Ki=0.0001) to eliminate steady-state error.
+- **Bumpless Transfer**: When AP turns ON, the PID output is initialized to the current physical cyclic position (captured from sensors) to prevent control kicks.
+- **Smoothing**: Navigation targets (target bank/target pitch) are smoothed using an exponential filter (alpha=0.1) to damping oscillations.
+- **Safety**: Triple beep alert on automatic safety disconnect.
 
 ### Config (config.h)
 
@@ -163,3 +167,6 @@ Simulator sends JSON messages over UART (Serial2). Autopilot requires valid simu
 | (heading hold) | HeadingHold mode: outer loop (heading error × headingKp → target roll) feeds roll PID. headingKp tunable via web. |
 | (vs mode) | VerticalSpeed mode: outer loop (VS error × vsKp → target pitch) feeds pitch PID. selectedVerticalSpeed from web (sync/adjust). cyclic_serial blocks pitch pass-through when VS active. |
 | (vs tuning) | vsKp tunable via web (PID Tuning section). POST /api/pid accepts vsKp. |
+| (bumpless) | Implemented bumpless transfer. On AP Enable, captured sensor physical offset is pre-loaded into PID integral/output to prevent engagement "kick". |
+| (vs upgrade) | VS mode upgraded to PI control. Added vsIntegral with anti-windup to kill steady-state error. Fixed direction: (Sim - Target) error correctly commands pitch up (negative) for climb capture. Added 0.1 alpha smoothing filter to nav target. |
+| (alerts) | Added audible safety alerts. Triple beep on safety-induced AP disconnect. |

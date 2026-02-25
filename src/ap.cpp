@@ -37,6 +37,10 @@ static double rollSetpoint = 0;
 static PID rollPid(&rollInput, &rollOutput, &rollSetpoint,
                    AP_ROLL_KP, AP_ROLL_KI, AP_ROLL_KD, REVERSE);  // REVERSE: Input (roll right) up -> Output (joystick) down (move left)
 
+// Vertical speed (Outer loop) state
+static double vsIntegral = 0;
+static const float AP_VS_KI = 0.0001f; // Slow integral to kill steady-state error
+
 void initAP() {
     state.autopilot.enabled = false;
     state.autopilot.horizontalMode = APHorizontalMode::Off;
@@ -141,6 +145,7 @@ void setAPVerticalMode(APVerticalMode mode) {
         state.autopilot.hasSelectedAltitude = true;
     } else if (mode == APVerticalMode::VerticalSpeed) {
         state.autopilot.hasSelectedVerticalSpeed = true;
+        vsIntegral = 0; // Reset integrator when entering mode
         if (state.simulator.valid) {
             state.autopilot.selectedVerticalSpeed = state.simulator.verticalSpeed;
         }
@@ -174,19 +179,33 @@ void handleAP() {
             float targetPitch = state.autopilot.selectedPitch;
 
             if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
-                // Outer loop: VS error -> target pitch (analogous to heading -> target roll)
+                // Outer loop: VS error -> target pitch
+                // Sim coordinates check: Pitch Up is NEGATIVE.
+                // If Target (700) > Sim (600) -> Need more climb -> Need more Pitch Up (Negative).
+                // Current: Target - Sim = +100 -> Commands +Pitch (Nose Down). Wrong!
+                // Fixed: Sim - Target = -100 -> Commands -Pitch (Nose Up). Correct.
                 float vsError = state.simulator.verticalSpeed - state.autopilot.selectedVerticalSpeed;
-                targetPitch = vsError * state.autopilot.vsKp;
+                
+                // P-Term
+                float requestedPitch = vsError * state.autopilot.vsKp;
+
+                // I-Term: Accumulate error to capture the drift
+                vsIntegral += vsError;
+                // Anti-windup (limit I-term contribution to +/- 5 deg)
+                if (vsIntegral * AP_VS_KI > 5.0f) vsIntegral = 5.0f / AP_VS_KI;
+                if (vsIntegral * AP_VS_KI < -5.0f) vsIntegral = -5.0f / AP_VS_KI;
+
+                requestedPitch += (vsIntegral * AP_VS_KI);
 
                 // Clamp to safe limits
-                if (targetPitch > AP_MAX_PITCH_ANGLE) targetPitch = AP_MAX_PITCH_ANGLE;
-                if (targetPitch < -AP_MAX_PITCH_ANGLE) targetPitch = -AP_MAX_PITCH_ANGLE;
+                if (requestedPitch > AP_MAX_PITCH_ANGLE) requestedPitch = AP_MAX_PITCH_ANGLE;
+                if (requestedPitch < -AP_MAX_PITCH_ANGLE) requestedPitch = -AP_MAX_PITCH_ANGLE;
 
-                // Update selectedPitch for telemetry display (indicator on web)
-                state.autopilot.selectedPitch = targetPitch;
+                // Simple smoothing
+                state.autopilot.selectedPitch = (state.autopilot.selectedPitch * 0.9f) + (requestedPitch * 0.1f);
             }
 
-            pitchSetpoint = targetPitch;
+            pitchSetpoint = state.autopilot.selectedPitch;
             pitchInput = state.simulator.pitch;
             pitchPid.Compute();
         }
