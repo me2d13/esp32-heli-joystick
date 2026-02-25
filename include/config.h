@@ -134,7 +134,8 @@
 #define AP_MAX_BANK_ANGLE          15.0f  // Max bank during turns (degrees)
 
 // Vertical speed navigation (Outer loop)
-#define AP_VS_KP                   0.02f  // Pitch angle (deg) per fpm of VS error
+#define AP_VS_KP                   0.005f // Pitch angle (deg) per fpm of VS error
+#define AP_VS_KI                   0.0002f// Dampened integral gain (per update cycle)
 #define AP_MAX_PITCH_ANGLE         10.0f  // Max pitch during VS hold (degrees)
 
 /*

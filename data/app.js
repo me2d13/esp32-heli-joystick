@@ -5,6 +5,7 @@ let currentHz = 0;
 let lastSimData = {};
 let selectedVS = 0;
 let selectedAltitude = 0;
+let isRecording = false;
 
 // Axis range: 0-10000
 const AXIS_MIN = 0;
@@ -317,6 +318,17 @@ function connect() {
             updateAPToggleButton(ap.enabled);
             updateSimulatorDisplay(sim, ap);
 
+            // Telemetry recording
+            if (isRecording && data.telemetry) {
+                const area = document.getElementById('telemetryArea');
+                area.value += data.telemetry + "\n";
+                // Auto-scroll only if we are already at the bottom
+                const isAtBottom = area.scrollHeight - area.clientHeight <= area.scrollTop + 20;
+                if (isAtBottom) {
+                    area.scrollTop = area.scrollHeight;
+                }
+            }
+
             // Cyclic X-Y: two points (sensor = stick position, joystick = values sent to PC)
             const sensorPoint = document.getElementById('sensorPoint');
             const joystickPoint = document.getElementById('joystickPoint');
@@ -544,3 +556,42 @@ function updateSimulatorDisplay(sim, ap) {
         pitchAPTarget.style.display = 'none';
     }
 }
+
+// Telemetry Controls
+document.getElementById('telemetryBtn').addEventListener('click', () => {
+    isRecording = !isRecording;
+    const btn = document.getElementById('telemetryBtn');
+    btn.textContent = isRecording ? 'STOP RECORDING' : 'START RECORDING';
+    btn.classList.toggle('recording', isRecording);
+
+    // Tell server to send telemetry field
+    fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: isRecording })
+    }).catch(err => console.error('Telemetry toggle failed:', err));
+
+    if (isRecording) {
+        const area = document.getElementById('telemetryArea');
+        if (area.value === "") {
+            area.value = "ms,ap,hMode,vMode,pitch,roll,hdg,vs,spd,sel_p,sel_r,sel_hdg,sel_vs,outY,outX\n";
+        }
+    }
+});
+
+document.getElementById('copyTelemetryBtn').addEventListener('click', () => {
+    const area = document.getElementById('telemetryArea');
+    area.select();
+    try {
+        document.execCommand('copy');
+        alert('CSV data copied to clipboard!');
+    } catch (err) {
+        console.error('Copy failed:', err);
+    }
+});
+
+document.getElementById('clearTelemetryBtn').addEventListener('click', () => {
+    if (confirm('Clear telemetry data?')) {
+        document.getElementById('telemetryArea').value = "";
+    }
+});

@@ -183,6 +183,30 @@ static void buildStateJson(JsonDocument& doc) {
         age = millis() - state.simulator.lastUpdateMs;
     }
     simulator["lastSimDataAgeMs"] = age;
+
+    doc["telemetryEnabled"] = state.telemetryEnabled;
+    if (state.telemetryEnabled) {
+        char buf[256];
+        // CSV: ms,ap,hMode,vMode,pitch,roll,hdg,vs,spd,sel_p,sel_r,sel_hdg,sel_vs,outY,outX
+        snprintf(buf, sizeof(buf), "%lu,%d,%s,%s,%.2f,%.2f,%.1f,%.1f,%.1f,%.2f,%.2f,%.1f,%.1f,%d,%d",
+            millis(),
+            state.autopilot.enabled ? 1 : 0,
+            apHorizontalModeStr(state.autopilot.horizontalMode),
+            apVerticalModeStr(state.autopilot.verticalMode),
+            state.simulator.pitch,
+            state.simulator.roll,
+            state.simulator.heading,
+            state.simulator.verticalSpeed,
+            state.simulator.speed,
+            state.autopilot.selectedPitch,
+            state.autopilot.selectedRoll,
+            state.autopilot.selectedHeading,
+            state.autopilot.selectedVerticalSpeed,
+            state.joystick.cyclicY,
+            state.joystick.cyclicX
+        );
+        doc["telemetry"] = buf;
+    }
 }
 
 // Send complete state to all connected WebSocket clients
@@ -397,6 +421,20 @@ void initWebServer() {
                 String json;
                 serializeJson(stateDoc, json);
                 server.send(200, "application/json", json);
+            });
+            server.on("/api/telemetry", HTTP_POST, []() {
+                if (!server.hasArg("plain")) {
+                    server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
+                    return;
+                }
+                String body = server.arg("plain");
+                StaticJsonDocument<128> doc;
+                deserializeJson(doc, body);
+                if (doc.containsKey("enabled")) {
+                    state.telemetryEnabled = doc["enabled"].as<bool>();
+                    LOG_INFOF("Telemetry recording: %s", state.telemetryEnabled ? "ON" : "OFF");
+                }
+                server.send(200, "application/json", state.telemetryEnabled ? "{\"enabled\":true}" : "{\"enabled\":false}");
             });
             server.on("/logs", []() {
                 String logsJSON = logger.getEntriesJSON();

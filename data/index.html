@@ -14,248 +14,268 @@
         <p class="subtitle">Real-time Controller Monitor</p>
 
         <div class="cards-grid">
-        <div class="card axes-buttons-card">
-            <div class="card-title">📊 Axes & Buttons</div>
+            <div class="card axes-buttons-card">
+                <div class="card-title">📊 Axes & Buttons</div>
 
-            <div class="axes-buttons-layout">
-                <div class="cyclic-collective-row">
-                    <div class="cyclic-xy-section">
-                        <div class="cyclic-xy-label">Cyclic (X-Y)</div>
-                        <div class="cyclic-xy-box" id="cyclicXYBox">
-                            <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
-                            <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
-                        </div>
-                        <div class="cyclic-xy-legend">
-                            <span class="legend-sensor">● Sensor</span>
-                            <span class="legend-joystick">● Joystick</span>
-                        </div>
-                    </div>
-                    <div class="collective-section">
-                        <div class="collective-label">Collective</div>
-                        <div class="collective-bar-container">
-                            <div class="collective-bar-fill" id="collectiveBar"></div>
-                        </div>
-                        <div class="collective-value" id="collectiveValue">5000</div>
-                    </div>
-                </div>
-                <div class="buttons-section">
-                    <div class="buttons-grid" id="buttonsGrid">
-                    </div>
-                </div>
-            </div>
-
-            <div class="raw-values">
-                <div class="raw-value">Raw X: <span id="rawX">--</span></div>
-                <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
-                <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
-            </div>
-        </div>
-
-        <div class="card ap-card">
-            <div class="card-title">Autopilot</div>
-            <div class="ap-layout">
-                <div class="ap-pfd">
-                    <div class="ap-lateral" id="apLateral">--</div>
-                    <div class="ap-center" id="apCenter">--</div>
-                    <div class="ap-vertical" id="apVertical">--</div>
-                </div>
-                <div class="ap-controls">
-                    <div class="ap-toggle-dpad-col">
-                        <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
-                        <div class="ap-dpad">
-                            <div class="dpad-row">
-                                <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                <div class="axes-buttons-layout">
+                    <div class="cyclic-collective-row">
+                        <div class="cyclic-xy-section">
+                            <div class="cyclic-xy-label">Cyclic (X-Y)</div>
+                            <div class="cyclic-xy-box" id="cyclicXYBox">
+                                <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
+                                <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
                             </div>
-                            <div class="dpad-row">
-                                <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
-                                <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
-                            </div>
-                            <div class="dpad-row">
-                                <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                            <div class="cyclic-xy-legend">
+                                <span class="legend-sensor">● Sensor</span>
+                                <span class="legend-joystick">● Joystick</span>
                             </div>
                         </div>
-                    </div>
-                    <div class="ap-mode-buttons-col">
-                        <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
-                        <div class="ap-vert-modes">
-                            <button class="ap-btn ap-mode-btn" id="apVsBtn">VS</button>
-                            <button class="ap-btn ap-mode-btn" id="apAltsBtn">ALTS</button>
+                        <div class="collective-section">
+                            <div class="collective-label">Collective</div>
+                            <div class="collective-bar-container">
+                                <div class="collective-bar-fill" id="collectiveBar"></div>
+                            </div>
+                            <div class="collective-value" id="collectiveValue">5000</div>
                         </div>
                     </div>
-                </div>
-            </div> <!-- End ap-layout -->
-            <div class="ap-extra-controls">
-                <div class="ap-input-group">
-                    <label>Selected Heading</label>
-                    <div class="ap-slider-row">
-                        <input type="range" id="hdgSlider" min="0" max="359" value="0">
-                        <input type="number" id="hdgInput" min="0" max="359" value="0" readonly title="Click to sync from current sim heading">
-                        <span class="unit">°</span>
-                    </div>
-                </div>
-                <div class="ap-input-group">
-                    <label>Selected VS</label>
-                    <div class="ap-value-row">
-                        <div class="ap-value-row-left">
-                            <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
-                        </div>
-                        <input type="number" id="vsInput" readonly title="Click to sync from current sim VS" step="1">
-                        <div class="ap-value-row-right">
-                            <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
-                            <span class="unit">fpm</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="ap-input-group">
-                    <label>Selected Altitude</label>
-                    <div class="ap-value-row">
-                        <div class="ap-value-row-left">
-                            <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
-                            <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
-                        </div>
-                        <input type="number" id="altInput" readonly title="Click to sync from current sim altitude" step="1">
-                        <div class="ap-value-row-right">
-                            <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
-                            <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>
-                            <span class="unit">ft</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- End ap-card -->
-
-        <div class="card sim-card">
-            <div class="card-title">🌐 Simulator Data</div>
-            <div class="sim-layout">
-                <div class="sim-main">
-                    <table class="sim-table">
-                        <tr>
-                            <th>Speed</th>
-                            <td id="simSpeed">--</td>
-                            <td>kt</td>
-                        </tr>
-                        <tr>
-                            <th>Altitude</th>
-                            <td id="simAlt">--</td>
-                            <td>ft</td>
-                        </tr>
-                        <tr>
-                            <th>Heading</th>
-                            <td id="simHdg">--</td>
-                            <td>°</td>
-                        </tr>
-                        <tr>
-                            <th>VS</th>
-                            <td id="simVS">--</td>
-                            <td>fpm</td>
-                        </tr>
-                        <tr>
-                            <th>Pitch</th>
-                            <td id="simPitchText">--</td>
-                            <td>°</td>
-                        </tr>
-                        <tr>
-                            <th>Roll</th>
-                            <td id="simRollText">--</td>
-                            <td>°</td>
-                        </tr>
-                        <tr>
-                            <th>Last Update</th>
-                            <td id="simLastUpdate">--</td>
-                            <td></td>
-                        </tr>
-                    </table>
-
-                    <div class="indicator-container horiz">
-                        <div class="indicator-label">Roll</div>
-                        <div class="bar-horiz">
-                            <div class="bar-highlight" id="rollAPTarget" style="display: none;"></div>
-                            <div class="bar-needle" id="rollNeedle"></div>
+                    <div class="buttons-section">
+                        <div class="buttons-grid" id="buttonsGrid">
                         </div>
                     </div>
                 </div>
 
-                <div class="sim-side">
-                    <div class="indicator-container vert">
-                        <div class="indicator-label">Pitch</div>
-                        <div class="bar-vert">
-                            <div class="bar-highlight" id="pitchAPTarget" style="display: none;"></div>
-                            <div class="bar-needle" id="pitchNeedle"></div>
+                <div class="raw-values">
+                    <div class="raw-value">Raw X: <span id="rawX">--</span></div>
+                    <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
+                    <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
+                </div>
+            </div>
+
+            <div class="card ap-card">
+                <div class="card-title">Autopilot</div>
+                <div class="ap-layout">
+                    <div class="ap-pfd">
+                        <div class="ap-lateral" id="apLateral">--</div>
+                        <div class="ap-center" id="apCenter">--</div>
+                        <div class="ap-vertical" id="apVertical">--</div>
+                    </div>
+                    <div class="ap-controls">
+                        <div class="ap-toggle-dpad-col">
+                            <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+                            <div class="ap-dpad">
+                                <div class="dpad-row">
+                                    <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                                </div>
+                                <div class="dpad-row">
+                                    <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
+                                    <button class="ap-btn dpad-btn" id="apRollRightBtn"
+                                        title="Roll Right +1°">▶</button>
+                                </div>
+                                <div class="dpad-row">
+                                    <button class="ap-btn dpad-btn" id="apPitchDownBtn"
+                                        title="Pitch Down +1°">▼</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ap-mode-buttons-col">
+                            <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
+                            <div class="ap-vert-modes">
+                                <button class="ap-btn ap-mode-btn" id="apVsBtn">VS</button>
+                                <button class="ap-btn ap-mode-btn" id="apAltsBtn">ALTS</button>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End ap-layout -->
+                <div class="ap-extra-controls">
+                    <div class="ap-input-group">
+                        <label>Selected Heading</label>
+                        <div class="ap-slider-row">
+                            <input type="range" id="hdgSlider" min="0" max="359" value="0">
+                            <input type="number" id="hdgInput" min="0" max="359" value="0" readonly
+                                title="Click to sync from current sim heading">
+                            <span class="unit">°</span>
+                        </div>
+                    </div>
+                    <div class="ap-input-group">
+                        <label>Selected VS</label>
+                        <div class="ap-value-row">
+                            <div class="ap-value-row-left">
+                                <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
+                            </div>
+                            <input type="number" id="vsInput" readonly title="Click to sync from current sim VS"
+                                step="1">
+                            <div class="ap-value-row-right">
+                                <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
+                                <span class="unit">fpm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ap-input-group">
+                        <label>Selected Altitude</label>
+                        <div class="ap-value-row">
+                            <div class="ap-value-row-left">
+                                <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
+                                <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
+                            </div>
+                            <input type="number" id="altInput" readonly title="Click to sync from current sim altitude"
+                                step="1">
+                            <div class="ap-value-row-right">
+                                <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
+                                <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>
+                                <span class="unit">ft</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- End ap-card -->
+
+            <div class="card sim-card">
+                <div class="card-title">🌐 Simulator Data</div>
+                <div class="sim-layout">
+                    <div class="sim-main">
+                        <table class="sim-table">
+                            <tr>
+                                <th>Speed</th>
+                                <td id="simSpeed">--</td>
+                                <td>kt</td>
+                            </tr>
+                            <tr>
+                                <th>Altitude</th>
+                                <td id="simAlt">--</td>
+                                <td>ft</td>
+                            </tr>
+                            <tr>
+                                <th>Heading</th>
+                                <td id="simHdg">--</td>
+                                <td>°</td>
+                            </tr>
+                            <tr>
+                                <th>VS</th>
+                                <td id="simVS">--</td>
+                                <td>fpm</td>
+                            </tr>
+                            <tr>
+                                <th>Pitch</th>
+                                <td id="simPitchText">--</td>
+                                <td>°</td>
+                            </tr>
+                            <tr>
+                                <th>Roll</th>
+                                <td id="simRollText">--</td>
+                                <td>°</td>
+                            </tr>
+                            <tr>
+                                <th>Last Update</th>
+                                <td id="simLastUpdate">--</td>
+                                <td></td>
+                            </tr>
+                        </table>
+
+                        <div class="indicator-container horiz">
+                            <div class="indicator-label">Roll</div>
+                            <div class="bar-horiz">
+                                <div class="bar-highlight" id="rollAPTarget" style="display: none;"></div>
+                                <div class="bar-needle" id="rollNeedle"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-side">
+                        <div class="indicator-container vert">
+                            <div class="indicator-label">Pitch</div>
+                            <div class="bar-vert">
+                                <div class="bar-highlight" id="pitchAPTarget" style="display: none;"></div>
+                                <div class="bar-needle" id="pitchNeedle"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card pid-card">
-            <div class="card-title">⚙️ PID Tuning</div>
-            <div class="pid-controls-grid">
-                <div class="pid-axis-label">Pitch</div>
-                <div class="pid-group">
-                    <label>Kp</label>
-                    <input type="number" id="kpInput" step="1" value="200">
-                </div>
-                <div class="pid-group">
-                    <label>Ki</label>
-                    <input type="number" id="kiInput" step="0.1" value="0">
-                </div>
-                <div class="pid-group">
-                    <label>Kd</label>
-                    <input type="number" id="kdInput" step="1" value="50">
-                </div>
+            <div class="card pid-card">
+                <div class="card-title">⚙️ PID Tuning</div>
+                <div class="pid-controls-grid">
+                    <div class="pid-axis-label">Pitch</div>
+                    <div class="pid-group">
+                        <label>Kp</label>
+                        <input type="number" id="kpInput" step="1" value="200">
+                    </div>
+                    <div class="pid-group">
+                        <label>Ki</label>
+                        <input type="number" id="kiInput" step="0.1" value="0">
+                    </div>
+                    <div class="pid-group">
+                        <label>Kd</label>
+                        <input type="number" id="kdInput" step="1" value="50">
+                    </div>
 
-                <div class="pid-axis-label">Roll</div>
-                <div class="pid-group">
-                    <label>Kp</label>
-                    <input type="number" id="rollKpInput" step="1" value="200">
-                </div>
-                <div class="pid-group">
-                    <label>Ki</label>
-                    <input type="number" id="rollKiInput" step="0.1" value="0">
-                </div>
-                <div class="pid-group">
-                    <label>Kd</label>
-                    <input type="number" id="rollKdInput" step="1" value="50">
-                </div>
+                    <div class="pid-axis-label">Roll</div>
+                    <div class="pid-group">
+                        <label>Kp</label>
+                        <input type="number" id="rollKpInput" step="1" value="200">
+                    </div>
+                    <div class="pid-group">
+                        <label>Ki</label>
+                        <input type="number" id="rollKiInput" step="0.1" value="0">
+                    </div>
+                    <div class="pid-group">
+                        <label>Kd</label>
+                        <input type="number" id="rollKdInput" step="1" value="50">
+                    </div>
 
-                <div class="pid-axis-label">Nav</div>
-                <div class="pid-group">
-                    <label>Hdg Kp</label>
-                    <input type="number" id="hdgKpInput" step="0.1" value="1.5">
+                    <div class="pid-axis-label">Nav</div>
+                    <div class="pid-group">
+                        <label>Hdg Kp</label>
+                        <input type="number" id="hdgKpInput" step="0.1" value="1.5">
+                    </div>
+                    <div class="pid-group">
+                        <label>VS Kp</label>
+                        <input type="number" id="vsKpInput" step="0.01" value="0.05">
+                    </div>
                 </div>
-                <div class="pid-group">
-                    <label>VS Kp</label>
-                    <input type="number" id="vsKpInput" step="0.01" value="0.05">
+                <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="connection-dot" id="connectionDot"></span>
+                    System Status
+                </div>
+                <div class="status-row">
+                    <span class="status-label">WebSocket</span>
+                    <span class="status-value" id="wsStatus">Connecting...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Cyclic Data</span>
+                    <span class="status-value" id="cyclicStatus">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Update Rate</span>
+                    <span class="status-value" id="updateRate">-- Hz</span>
                 </div>
             </div>
-            <button class="ap-btn pid-apply" id="pidApplyBtn">Apply All</button>
-        </div>
 
-        <div class="card">
-            <div class="card-title">
-                <span class="connection-dot" id="connectionDot"></span>
-                System Status
+            <div class="card diag-card">
+                <div class="card-title">🔍 Diagnostics & Telemetry</div>
+                <p style="font-size: 0.8em; color: #8892b0; margin-bottom: 15px;">
+                    Record autopilot performance data to CSV. Enable recording, perform your flight test, then copy the
+                    data for analysis.
+                </p>
+                <div class="diag-controls">
+                    <button class="ap-btn" id="telemetryBtn">START RECORDING</button>
+                    <button class="ap-btn" id="copyTelemetryBtn">COPY CSV</button>
+                    <button class="ap-btn" id="clearTelemetryBtn">CLEAR</button>
+                </div>
+                <textarea id="telemetryArea" readonly
+                    placeholder="CSV data will appear here when recording is ON..."></textarea>
             </div>
-            <div class="status-row">
-                <span class="status-label">WebSocket</span>
-                <span class="status-value" id="wsStatus">Connecting...</span>
-            </div>
-            <div class="status-row">
-                <span class="status-label">Cyclic Data</span>
-                <span class="status-value" id="cyclicStatus">--</span>
-            </div>
-            <div class="status-row">
-                <span class="status-label">Update Rate</span>
-                <span class="status-value" id="updateRate">-- Hz</span>
-            </div>
-        </div>
 
-        <div class="card">
-            <div class="card-title">📋 System Logs</div>
-            <div class="logs-section" id="logsContainer">
-                <div class="log-entry">Loading logs...</div>
+            <div class="card">
+                <div class="card-title">📋 System Logs</div>
+                <div class="logs-section" id="logsContainer">
+                    <div class="log-entry">Loading logs...</div>
+                </div>
             </div>
-        </div>
         </div><!-- end cards-grid -->
 
         <p class="footer">

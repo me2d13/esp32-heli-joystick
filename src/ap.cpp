@@ -28,18 +28,17 @@ static double pitchInput = 0;
 static double pitchOutput = 0;
 static double pitchSetpoint = 0;
 static PID pitchPid(&pitchInput, &pitchOutput, &pitchSetpoint,
-                    AP_PITCH_KP, AP_PITCH_KI, AP_PITCH_KD, 1);  // 1=REVERSE
+                    AP_PITCH_KP, AP_PITCH_KI, AP_PITCH_KD, REVERSE);  // REVERSE mode was working correctly
 
 // PID for roll hold: setpoint=selectedRoll, input=actual roll, output=cyclic X offset
 static double rollInput = 0;
 static double rollOutput = 0;
 static double rollSetpoint = 0;
 static PID rollPid(&rollInput, &rollOutput, &rollSetpoint,
-                   AP_ROLL_KP, AP_ROLL_KI, AP_ROLL_KD, REVERSE);  // REVERSE: Input (roll right) up -> Output (joystick) down (move left)
+                   AP_ROLL_KP, AP_ROLL_KI, AP_ROLL_KD, REVERSE);  // REVERSE mode was working correctly
 
 // Vertical speed (Outer loop) state
 static double vsIntegral = 0;
-static const float AP_VS_KI = 0.0001f; // Slow integral to kill steady-state error
 
 void initAP() {
     state.autopilot.enabled = false;
@@ -145,9 +144,13 @@ void setAPVerticalMode(APVerticalMode mode) {
         state.autopilot.hasSelectedAltitude = true;
     } else if (mode == APVerticalMode::VerticalSpeed) {
         state.autopilot.hasSelectedVerticalSpeed = true;
-        vsIntegral = 0; // Reset integrator when entering mode
+        // Initialize integrator to current pitch to prevent falling to 0.0 on engagement
+        // Note: Seeding math assumes current error is 0, so pitch/KI = integral
         if (state.simulator.valid) {
+            vsIntegral = state.simulator.pitch / AP_VS_KI; 
             state.autopilot.selectedVerticalSpeed = state.simulator.verticalSpeed;
+        } else {
+            vsIntegral = 0;
         }
     }
 }
@@ -179,11 +182,9 @@ void handleAP() {
             float targetPitch = state.autopilot.selectedPitch;
 
             if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
-                // Outer loop: VS error -> target pitch
-                // Sim coordinates check: Pitch Up is NEGATIVE.
-                // If Target (700) > Sim (600) -> Need more climb -> Need more Pitch Up (Negative).
-                // Current: Target - Sim = +100 -> Commands +Pitch (Nose Down). Wrong!
-                // Fixed: Sim - Target = -100 -> Commands -Pitch (Nose Up). Correct.
+                // Outer loop: Sim actual - VS Setpoint
+                // Convention Check: In this sim, Positive Pitch is Nose DOWN.
+                // If sim is climbing (higher than target), error is positive -> Commands +Pitch (Nose DOWN).
                 float vsError = state.simulator.verticalSpeed - state.autopilot.selectedVerticalSpeed;
                 
                 // P-Term
@@ -191,9 +192,9 @@ void handleAP() {
 
                 // I-Term: Accumulate error to capture the drift
                 vsIntegral += vsError;
-                // Anti-windup (limit I-term contribution to +/- 5 deg)
-                if (vsIntegral * AP_VS_KI > 5.0f) vsIntegral = 5.0f / AP_VS_KI;
-                if (vsIntegral * AP_VS_KI < -5.0f) vsIntegral = -5.0f / AP_VS_KI;
+                // Anti-windup (limit I-term contribution to +/- MAX_PITCH)
+                if (vsIntegral * AP_VS_KI > AP_MAX_PITCH_ANGLE) vsIntegral = AP_MAX_PITCH_ANGLE / AP_VS_KI;
+                if (vsIntegral * AP_VS_KI < -AP_MAX_PITCH_ANGLE) vsIntegral = -AP_MAX_PITCH_ANGLE / AP_VS_KI;
 
                 requestedPitch += (vsIntegral * AP_VS_KI);
 

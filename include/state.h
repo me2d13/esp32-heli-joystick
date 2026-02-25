@@ -120,6 +120,7 @@ struct AppState {
     SimulatorState simulator;
     SensorState sensors;
     JoystickState joystick;
+    bool telemetryEnabled = false;
 };
 
 // Global state instance (defined in state.cpp)
