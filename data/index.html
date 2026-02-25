@@ -13,27 +13,34 @@
         <h1>🚁 ESP32 Heli Joystick</h1>
         <p class="subtitle">Real-time Controller Monitor</p>
 
-        <div class="card">
-            <div class="card-title">📊 Axes</div>
+        <div class="cards-grid">
+        <div class="card axes-buttons-card">
+            <div class="card-title">📊 Axes & Buttons</div>
 
-            <div class="axes-layout">
-                <div class="cyclic-xy-section">
-                    <div class="cyclic-xy-label">Cyclic (X-Y)</div>
-                    <div class="cyclic-xy-box" id="cyclicXYBox">
-                        <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
-                        <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
+            <div class="axes-buttons-layout">
+                <div class="cyclic-collective-row">
+                    <div class="cyclic-xy-section">
+                        <div class="cyclic-xy-label">Cyclic (X-Y)</div>
+                        <div class="cyclic-xy-box" id="cyclicXYBox">
+                            <div class="cyclic-xy-point sensor-point" id="sensorPoint"></div>
+                            <div class="cyclic-xy-point joystick-point" id="joystickPoint"></div>
+                        </div>
+                        <div class="cyclic-xy-legend">
+                            <span class="legend-sensor">● Sensor</span>
+                            <span class="legend-joystick">● Joystick</span>
+                        </div>
                     </div>
-                    <div class="cyclic-xy-legend">
-                        <span class="legend-sensor">● Sensor</span>
-                        <span class="legend-joystick">● Joystick</span>
+                    <div class="collective-section">
+                        <div class="collective-label">Collective</div>
+                        <div class="collective-bar-container">
+                            <div class="collective-bar-fill" id="collectiveBar"></div>
+                        </div>
+                        <div class="collective-value" id="collectiveValue">5000</div>
                     </div>
                 </div>
-                <div class="collective-section">
-                    <div class="collective-label">Collective</div>
-                    <div class="collective-bar-container">
-                        <div class="collective-bar-fill" id="collectiveBar"></div>
+                <div class="buttons-section">
+                    <div class="buttons-grid" id="buttonsGrid">
                     </div>
-                    <div class="collective-value" id="collectiveValue">5000</div>
                 </div>
             </div>
 
@@ -41,12 +48,6 @@
                 <div class="raw-value">Raw X: <span id="rawX">--</span></div>
                 <div class="raw-value">Raw Y: <span id="rawY">--</span></div>
                 <div class="raw-value">Raw Collective: <span id="rawZ">--</span></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🔘 Buttons (1–32)</div>
-            <div class="buttons-grid" id="buttonsGrid">
             </div>
         </div>
 
@@ -215,6 +216,7 @@
                 <div class="log-entry">Loading logs...</div>
             </div>
         </div>
+        </div><!-- end cards-grid -->
 
         <p class="footer">
             WiFi: Connected • OTA: Ready<br>

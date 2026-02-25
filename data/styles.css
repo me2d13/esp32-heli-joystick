@@ -12,8 +12,15 @@ body {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1100px;
     margin: 0 auto;
+}
+
+/* Responsive 2-column layout for cards */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
+    gap: 20px;
 }
 
 h1 {
@@ -35,8 +42,8 @@ h1 {
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 24px;
-    margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 0; /* prevent grid overflow */
 }
 
 .card-title {
@@ -47,6 +54,10 @@ h1 {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.axes-buttons-card .card-title {
+    margin-bottom: 12px;
 }
 
 .status-row {
@@ -109,27 +120,34 @@ h1 {
     }
 }
 
-/* Axes layout: X-Y box + collective bar side by side */
-.axes-layout {
+/* Axes + Buttons combined layout */
+.axes-buttons-layout {
     display: flex;
-    gap: 24px;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.cyclic-collective-row {
+    display: flex;
+    gap: 12px;
     align-items: stretch;
 }
 
 /* Cyclic X-Y area (joystick calibration style) */
 .cyclic-xy-section {
-    flex: 1;
+    flex: 0 0 auto;
 }
 
 .cyclic-xy-label {
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    font-size: 0.9em;
 }
 
 .cyclic-xy-box {
     position: relative;
-    aspect-ratio: 1;
-    max-height: 200px;
+    width: 140px;
+    height: 140px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -157,9 +175,9 @@ h1 {
 
 .cyclic-xy-legend {
     display: flex;
-    gap: 16px;
-    margin-top: 8px;
-    font-size: 0.85em;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 0.75em;
     color: #8892b0;
 }
 
@@ -171,25 +189,25 @@ h1 {
     color: #ff9f43;
 }
 
-/* Collective bar (vertical, rising) */
+/* Collective bar (vertical, narrow, next to cyclic) */
 .collective-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 48px;
+    width: 32px;
 }
 
 .collective-label {
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    font-size: 0.85em;
 }
 
 .collective-bar-container {
-    flex: 1;
-    width: 24px;
-    min-height: 120px;
+    width: 18px;
+    height: 140px;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
     display: flex;
@@ -207,9 +225,15 @@ h1 {
 
 .collective-value {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.85em;
+    font-size: 0.75em;
     color: #64ffda;
-    margin-top: 8px;
+    margin-top: 4px;
+}
+
+/* Buttons section - compact grid next to axes */
+.buttons-section {
+    flex: 1;
+    min-width: 0;
 }
 
 /* Autopilot section - PFD style (Garmin-like) */
@@ -427,6 +451,11 @@ h1 {
     width: 100%;
 }
 
+.axes-buttons-card .raw-values {
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
 .raw-values {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -443,17 +472,15 @@ h1 {
 }
 
 .buttons-grid {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-    overflow-x: auto;
-    padding-bottom: 4px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+    max-width: 180px;
 }
 
 .button {
-    width: 18px;
-    height: 18px;
-    min-width: 18px;
+    aspect-ratio: 1;
+    min-width: 0;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     display: flex;
@@ -668,26 +695,32 @@ h1 {
 }
 
 @media (max-width: 600px) {
-    .axes-layout {
+    .axes-buttons-layout {
         flex-direction: column;
     }
 
-    .cyclic-xy-box {
-        max-height: 180px;
-    }
-
-    .collective-section {
+    .cyclic-collective-row {
         width: 100%;
     }
 
+    .cyclic-xy-box {
+        width: 120px;
+        height: 120px;
+    }
+
+    .collective-section {
+        width: 32px;
+    }
+
     .collective-bar-container {
-        min-height: 80px;
+        height: 120px;
+    }
+
+    .buttons-grid {
+        max-width: 100%;
     }
 
     .button {
-        width: 16px;
-        height: 16px;
-        min-width: 16px;
         font-size: 8px;
     }
 
