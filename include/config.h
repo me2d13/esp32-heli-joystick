@@ -133,6 +133,10 @@
 #define AP_HEADING_KP              1.0f   // Bank angle per degree of heading error
 #define AP_MAX_BANK_ANGLE          15.0f  // Max bank during turns (degrees)
 
+// Vertical speed navigation (Outer loop)
+#define AP_VS_KP                   0.05f  // Pitch angle (deg) per fpm of VS error
+#define AP_MAX_PITCH_ANGLE         15.0f  // Max pitch during VS hold (degrees)
+
 /*
                                                                               
                             ┌─────────────────┐                               

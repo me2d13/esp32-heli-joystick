@@ -167,6 +167,7 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["rollKi"] = state.autopilot.rollKi;
     autopilot["rollKd"] = state.autopilot.rollKd;
     autopilot["headingKp"] = state.autopilot.headingKp;
+    autopilot["vsKp"] = state.autopilot.vsKp;
 
     JsonObject simulator = doc.createNestedObject("simulator");
     simulator["speed"] = state.simulator.speed;
@@ -307,6 +308,13 @@ void initWebServer() {
                     else if (hMode == "roll") setAPHorizontalMode(APHorizontalMode::RollHold);
                     else if (hMode == "hdg") setAPHorizontalMode(APHorizontalMode::HeadingHold);
                 }
+                if (doc.containsKey("verticalMode")) {
+                    String vMode = doc["verticalMode"].as<String>();
+                    if (vMode == "off") setAPVerticalMode(APVerticalMode::Off);
+                    else if (vMode == "pitch") setAPVerticalMode(APVerticalMode::PitchHold);
+                    else if (vMode == "vs") setAPVerticalMode(APVerticalMode::VerticalSpeed);
+                    else if (vMode == "alts") setAPVerticalMode(APVerticalMode::AltitudeHold);
+                }
                 if (doc.containsKey("selectedHeading")) {
                     state.autopilot.selectedHeading = doc["selectedHeading"].as<float>();
                     state.autopilot.hasSelectedHeading = true;
@@ -316,6 +324,10 @@ void initWebServer() {
                 }
                 if (doc.containsKey("selectedRoll")) {
                     state.autopilot.selectedRoll = doc["selectedRoll"].as<float>();
+                }
+                if (doc.containsKey("selectedVerticalSpeed")) {
+                    state.autopilot.selectedVerticalSpeed = doc["selectedVerticalSpeed"].as<float>();
+                    state.autopilot.hasSelectedVerticalSpeed = true;
                 }
                 // Return updated state
                 StaticJsonDocument<512> stateDoc;
@@ -364,6 +376,10 @@ void initWebServer() {
                 }
                 if (doc.containsKey("headingKp")) {
                     state.autopilot.headingKp = doc["headingKp"].as<float>();
+                    changed = true;
+                }
+                if (doc.containsKey("vsKp")) {
+                    state.autopilot.vsKp = doc["vsKp"].as<float>();
                     changed = true;
                 }
                 

@@ -50,6 +50,7 @@ void initAP() {
     state.autopilot.rollKi = AP_ROLL_KI;
     state.autopilot.rollKd = AP_ROLL_KD;
     state.autopilot.headingKp = AP_HEADING_KP;
+    state.autopilot.vsKp = AP_VS_KP;
 
     pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
     pitchPid.SetOutputLimits(-5000, 5000);
@@ -140,6 +141,9 @@ void setAPVerticalMode(APVerticalMode mode) {
         state.autopilot.hasSelectedAltitude = true;
     } else if (mode == APVerticalMode::VerticalSpeed) {
         state.autopilot.hasSelectedVerticalSpeed = true;
+        if (state.simulator.valid) {
+            state.autopilot.selectedVerticalSpeed = state.simulator.verticalSpeed;
+        }
     }
 }
 
@@ -162,15 +166,31 @@ void handleAP() {
         return;
     }
 
-    // 2. Vertical: pitch hold via PID
-    if (state.autopilot.verticalMode == APVerticalMode::PitchHold) {
+    // 2. Vertical: pitch hold or vertical speed hold via PID
+    if (state.autopilot.verticalMode == APVerticalMode::PitchHold ||
+        state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
         if (newData) {
             pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
-            pitchSetpoint = state.autopilot.selectedPitch;
+            float targetPitch = state.autopilot.selectedPitch;
+
+            if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
+                // Outer loop: VS error -> target pitch (analogous to heading -> target roll)
+                float vsError = state.simulator.verticalSpeed - state.autopilot.selectedVerticalSpeed;
+                targetPitch = vsError * state.autopilot.vsKp;
+
+                // Clamp to safe limits
+                if (targetPitch > AP_MAX_PITCH_ANGLE) targetPitch = AP_MAX_PITCH_ANGLE;
+                if (targetPitch < -AP_MAX_PITCH_ANGLE) targetPitch = -AP_MAX_PITCH_ANGLE;
+
+                // Update selectedPitch for telemetry display (indicator on web)
+                state.autopilot.selectedPitch = targetPitch;
+            }
+
+            pitchSetpoint = targetPitch;
             pitchInput = state.simulator.pitch;
             pitchPid.Compute();
         }
-        
+
         int16_t cyclicY = (int16_t)(AXIS_CENTER + pitchOutput);
         if (cyclicY < AXIS_MIN) cyclicY = AXIS_MIN;
         if (cyclicY > AXIS_MAX) cyclicY = AXIS_MAX;

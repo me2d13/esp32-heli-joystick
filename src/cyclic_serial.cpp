@@ -119,8 +119,11 @@ static void processPacket(const uint8_t* packet) {
         setJoystickAxis(AXIS_CYCLIC_X, axisX);
     }
 
-    // Pitch (Y) is only updated by sensor if AP is not holding it
-    if (!state.autopilot.enabled || state.autopilot.verticalMode != APVerticalMode::PitchHold) {
+    // Pitch (Y) is only updated by sensor if AP is not controlling it
+    bool apControlsPitch = state.autopilot.enabled &&
+        (state.autopilot.verticalMode == APVerticalMode::PitchHold ||
+         state.autopilot.verticalMode == APVerticalMode::VerticalSpeed);
+    if (!apControlsPitch) {
         setJoystickAxis(AXIS_CYCLIC_Y, axisY);
     }
 }

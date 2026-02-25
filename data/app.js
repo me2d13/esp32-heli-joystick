@@ -112,6 +112,18 @@ function syncVSFromSim() {
     if (vs === undefined || vs === null) return;
     selectedVS = Math.round(vs);
     document.getElementById('vsInput').value = selectedVS;
+    updateVSOnServer();
+}
+
+function updateVSOnServer() {
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedVerticalSpeed: selectedVS })
+    })
+        .then(response => response.json())
+        .then(data => updateAutopilotDisplay(data.autopilot || {}))
+        .catch(err => console.error('VS update failed:', err));
 }
 
 function syncAltitudeFromSim() {
@@ -159,6 +171,7 @@ function updatePID() {
     const rki = parseFloat(document.getElementById('rollKiInput').value);
     const rkd = parseFloat(document.getElementById('rollKdInput').value);
     const hkp = parseFloat(document.getElementById('hdgKpInput').value);
+    const vskp = parseFloat(document.getElementById('vsKpInput').value);
 
     fetch('/api/pid', {
         method: 'POST',
@@ -166,7 +179,7 @@ function updatePID() {
         body: JSON.stringify({
             pitchKp: kp, pitchKi: ki, pitchKd: kd,
             rollKp: rkp, rollKi: rki, rollKd: rkd,
-            headingKp: hkp
+            headingKp: hkp, vsKp: vskp
         })
     })
         .then(response => response.json())
@@ -197,15 +210,28 @@ function updateAutopilotDisplay(ap) {
         document.getElementById('rollKiInput').value = ap.rollKi;
         document.getElementById('rollKdInput').value = ap.rollKd;
         document.getElementById('hdgKpInput').value = ap.headingKp || 1.5;
+        document.getElementById('vsKpInput').value = ap.vsKp ?? 0.05;
         pidInited = true;
     }
 
-    // Update HDG controls
+    // Update HDG and VS mode buttons
     const hdgBtn = document.getElementById('apHdgBtn');
     if (hdgBtn) hdgBtn.classList.toggle('on', hMode === 'hdg');
+    const vsBtn = document.getElementById('apVsBtn');
+    if (vsBtn) vsBtn.classList.toggle('on', vMode === 'vs');
 
     document.getElementById('hdgSlider').value = Math.round(ap.selectedHeading || 0);
     document.getElementById('hdgInput').value = Math.round(ap.selectedHeading || 0);
+
+    // Sync VS/Altitude from server state
+    if (ap.selectedVerticalSpeed !== undefined) {
+        selectedVS = Math.round(ap.selectedVerticalSpeed);
+        document.getElementById('vsInput').value = selectedVS;
+    }
+    if (ap.selectedAltitude !== undefined) {
+        selectedAltitude = Math.round(ap.selectedAltitude);
+        document.getElementById('altInput').value = selectedAltitude;
+    }
 
     // Center: AP when enabled
     centerEl.textContent = enabled ? 'AP' : '--';
@@ -398,13 +424,38 @@ document.getElementById('apRollRightBtn').addEventListener('click', () => adjust
 
 // Mode controls
 document.getElementById('apHdgBtn').addEventListener('click', toggleHDG);
+document.getElementById('apVsBtn').addEventListener('click', toggleVS);
 document.getElementById('hdgInput').addEventListener('click', syncHeadingFromSim);
 document.getElementById('vsInput').addEventListener('click', syncVSFromSim);
 document.getElementById('altInput').addEventListener('click', syncAltitudeFromSim);
 
-// VS adjustment buttons (local only, no API)
-document.getElementById('vsMinus100').addEventListener('click', () => { selectedVS -= 100; updateVSDisplay(); });
-document.getElementById('vsPlus100').addEventListener('click', () => { selectedVS += 100; updateVSDisplay(); });
+function toggleVS() {
+    const btn = document.getElementById('apVsBtn');
+    if (!btn) return;
+    const currentlyOn = btn.classList.contains('on');
+    const newMode = currentlyOn ? 'pitch' : 'vs';
+
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verticalMode: newMode })
+    })
+        .then(response => response.json())
+        .then(data => updateAutopilotDisplay(data.autopilot || {}))
+        .catch(err => console.error('VS toggle failed:', err));
+}
+
+// VS adjustment buttons - update local state and send to server
+document.getElementById('vsMinus100').addEventListener('click', () => {
+    selectedVS -= 100;
+    updateVSDisplay();
+    updateVSOnServer();
+});
+document.getElementById('vsPlus100').addEventListener('click', () => {
+    selectedVS += 100;
+    updateVSDisplay();
+    updateVSOnServer();
+});
 
 // Altitude adjustment buttons (local only, no API)
 document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude -= 1000; updateAltitudeDisplay(); });
