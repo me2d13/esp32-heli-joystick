@@ -2,6 +2,9 @@ let ws;
 let updateCount = 0;
 let lastSecond = Date.now();
 let currentHz = 0;
+let lastSimData = {};
+let selectedVS = 0;
+let selectedAltitude = 0;
 
 // Axis range: 0-10000
 const AXIS_MIN = 0;
@@ -93,6 +96,37 @@ function updateHeading(value) {
     })
         .then(response => response.json())
         .catch(err => console.error('Heading update failed:', err));
+}
+
+function syncHeadingFromSim() {
+    const hdg = lastSimData.heading;
+    if (hdg === undefined || hdg === null) return;
+    const value = Math.round(hdg) % 360;
+    document.getElementById('hdgSlider').value = value;
+    document.getElementById('hdgInput').value = value;
+    updateHeading(value);
+}
+
+function syncVSFromSim() {
+    const vs = lastSimData.verticalSpeed;
+    if (vs === undefined || vs === null) return;
+    selectedVS = Math.round(vs);
+    document.getElementById('vsInput').value = selectedVS;
+}
+
+function syncAltitudeFromSim() {
+    const alt = lastSimData.altitude;
+    if (alt === undefined || alt === null) return;
+    selectedAltitude = Math.round(alt);
+    document.getElementById('altInput').value = selectedAltitude;
+}
+
+function updateVSDisplay() {
+    document.getElementById('vsInput').value = selectedVS;
+}
+
+function updateAltitudeDisplay() {
+    document.getElementById('altInput').value = selectedAltitude;
 }
 
 function adjustAPTarget(axis, delta) {
@@ -252,6 +286,7 @@ function connect() {
             // Autopilot & Simulator display
             const ap = data.autopilot || {};
             const sim = data.simulator || {};
+            lastSimData = sim;
             updateAutopilotDisplay(ap);
             updateAPToggleButton(ap.enabled);
             updateSimulatorDisplay(sim, ap);
@@ -346,6 +381,8 @@ updateCollectiveBar(5000);
 updateAutopilotDisplay({});
 updateSimulatorDisplay({}, {});
 updateAPToggleButton(false);
+updateVSDisplay();
+updateAltitudeDisplay();
 
 // AP toggle button
 document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
@@ -360,8 +397,20 @@ document.getElementById('apRollLeftBtn').addEventListener('click', () => adjustA
 document.getElementById('apRollRightBtn').addEventListener('click', () => adjustAPTarget('roll', -1));   // Roll RIGHT = negative
 
 // Mode controls
-document.getElementById('apToggleBtn').addEventListener('click', toggleAP);
 document.getElementById('apHdgBtn').addEventListener('click', toggleHDG);
+document.getElementById('hdgInput').addEventListener('click', syncHeadingFromSim);
+document.getElementById('vsInput').addEventListener('click', syncVSFromSim);
+document.getElementById('altInput').addEventListener('click', syncAltitudeFromSim);
+
+// VS adjustment buttons (local only, no API)
+document.getElementById('vsMinus100').addEventListener('click', () => { selectedVS -= 100; updateVSDisplay(); });
+document.getElementById('vsPlus100').addEventListener('click', () => { selectedVS += 100; updateVSDisplay(); });
+
+// Altitude adjustment buttons (local only, no API)
+document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude -= 1000; updateAltitudeDisplay(); });
+document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude -= 100; updateAltitudeDisplay(); });
+document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude += 100; updateAltitudeDisplay(); });
+document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude += 1000; updateAltitudeDisplay(); });
 
 // Heading adjustment
 const hdgSlider = document.getElementById('hdgSlider');

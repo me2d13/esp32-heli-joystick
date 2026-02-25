@@ -60,18 +60,26 @@
                     <div class="ap-vertical" id="apVertical">--</div>
                 </div>
                 <div class="ap-controls">
-                    <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
-                    <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
-                    <div class="ap-dpad">
-                        <div class="dpad-row">
-                            <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                    <div class="ap-toggle-dpad-col">
+                        <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+                        <div class="ap-dpad">
+                            <div class="dpad-row">
+                                <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                            </div>
+                            <div class="dpad-row">
+                                <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
+                                <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
+                            </div>
+                            <div class="dpad-row">
+                                <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                            </div>
                         </div>
-                        <div class="dpad-row">
-                            <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
-                            <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
-                        </div>
-                        <div class="dpad-row">
-                            <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                    </div>
+                    <div class="ap-mode-buttons-col">
+                        <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
+                        <div class="ap-vert-modes">
+                            <button class="ap-btn ap-mode-btn" id="apVsBtn">VS</button>
+                            <button class="ap-btn ap-mode-btn" id="apAltsBtn">ALTS</button>
                         </div>
                     </div>
                 </div>
@@ -81,8 +89,36 @@
                     <label>Selected Heading</label>
                     <div class="ap-slider-row">
                         <input type="range" id="hdgSlider" min="0" max="359" value="0">
-                        <input type="number" id="hdgInput" min="0" max="359" value="0">
+                        <input type="number" id="hdgInput" min="0" max="359" value="0" readonly title="Click to sync from current sim heading">
                         <span class="unit">°</span>
+                    </div>
+                </div>
+                <div class="ap-input-group">
+                    <label>Selected VS</label>
+                    <div class="ap-value-row">
+                        <div class="ap-value-row-left">
+                            <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
+                        </div>
+                        <input type="number" id="vsInput" readonly title="Click to sync from current sim VS" step="1">
+                        <div class="ap-value-row-right">
+                            <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
+                            <span class="unit">fpm</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ap-input-group">
+                    <label>Selected Altitude</label>
+                    <div class="ap-value-row">
+                        <div class="ap-value-row-left">
+                            <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
+                            <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
+                        </div>
+                        <input type="number" id="altInput" readonly title="Click to sync from current sim altitude" step="1">
+                        <div class="ap-value-row-right">
+                            <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
+                            <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>
+                            <span class="unit">ft</span>
+                        </div>
                     </div>
                 </div>
             </div>
