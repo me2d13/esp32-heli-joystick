@@ -142,6 +142,10 @@ void setAPVerticalMode(APVerticalMode mode) {
         state.autopilot.selectedPitch = state.simulator.pitch;
     } else if (mode == APVerticalMode::AltitudeHold) {
         state.autopilot.hasSelectedAltitude = true;
+        // If manually engaged, capture current altitude immediately
+        if (state.simulator.valid) {
+            state.autopilot.capturedAltitude = state.simulator.altitude;
+        }
     } else if (mode == APVerticalMode::VerticalSpeed) {
         state.autopilot.hasSelectedVerticalSpeed = true;
         // Initialize integrator to current pitch to prevent falling to 0.0 on engagement
@@ -190,7 +194,7 @@ void handleAP() {
                     targetVS = state.autopilot.selectedVerticalSpeed;
                 } else {
                     // Altitude Hold: Outer loop (Altitude -> VS)
-                    float altError = state.autopilot.selectedAltitude - state.simulator.altitude;
+                    float altError = state.autopilot.capturedAltitude - state.simulator.altitude;
                     targetVS = altError * AP_ALTS_GAIN;
                     if (targetVS > AP_ALTS_MAX_VS) targetVS = AP_ALTS_MAX_VS;
                     if (targetVS < -AP_ALTS_MAX_VS) targetVS = -AP_ALTS_MAX_VS;
@@ -225,6 +229,7 @@ void handleAP() {
                     LOG_INFO("ALTS CAPTURE: Switching to Altitude Hold");
                     state.autopilot.verticalMode = APVerticalMode::AltitudeHold;
                     state.autopilot.altHoldArmed = false;
+                    state.autopilot.capturedAltitude = state.autopilot.selectedAltitude;
                     // Note: vsIntegral is already active from current mode, 
                     // which provides a smooth transition
                 }

@@ -284,7 +284,8 @@ function updateAutopilotDisplay(ap) {
         } else if (vMode === 'vs') {
             vertActiveText = 'VS ' + Math.round(ap.selectedVerticalSpeed || 0);
         } else if (vMode === 'alts') {
-            vertActiveText = 'ALTS ' + Math.round(ap.selectedAltitude || 0);
+            const activeAlt = ap.capturedAltitude !== undefined && ap.capturedAltitude !== 0 ? ap.capturedAltitude : ap.selectedAltitude;
+            vertActiveText = 'ALTS ' + Math.round(activeAlt || 0);
         }
 
         // Show armed ALT on second line if not active

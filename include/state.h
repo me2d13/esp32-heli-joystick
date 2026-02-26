@@ -37,6 +37,7 @@ struct AutopilotState {
     // Selected values for hold modes (used when mode is active)
     float selectedHeading = 0.0f;   // degrees, 0-360
     float selectedAltitude = 0.0f;  // feet or meters (future)
+    float capturedAltitude = 0.0f;  // Actual altitude being held when in ALTS mode
     float selectedVerticalSpeed = 0.0f;  // ft/min or m/s
     float selectedPitch = 0.0f;    // degrees, captured when entering PitchHold
     float selectedRoll = 0.0f;     // degrees, captured when entering RollHold

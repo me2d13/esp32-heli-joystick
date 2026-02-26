@@ -157,6 +157,7 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["verticalMode"] = apVerticalModeStr(state.autopilot.verticalMode);
     autopilot["selectedHeading"] = state.autopilot.selectedHeading;
     autopilot["selectedAltitude"] = state.autopilot.selectedAltitude;
+    autopilot["capturedAltitude"] = state.autopilot.capturedAltitude;
     autopilot["selectedVerticalSpeed"] = state.autopilot.selectedVerticalSpeed;
     autopilot["hasSelectedAltitude"] = state.autopilot.hasSelectedAltitude;
     autopilot["hasSelectedVerticalSpeed"] = state.autopilot.hasSelectedVerticalSpeed;
