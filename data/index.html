@@ -55,9 +55,15 @@
                 <div class="card-title">Autopilot</div>
                 <div class="ap-layout">
                     <div class="ap-pfd">
-                        <div class="ap-lateral" id="apLateral">--</div>
+                        <div class="ap-lateral" id="apLateral">
+                            <div class="active" id="apLateralActive">--</div>
+                            <div class="armed" id="apLateralArmed"></div>
+                        </div>
                         <div class="ap-center" id="apCenter">--</div>
-                        <div class="ap-vertical" id="apVertical">--</div>
+                        <div class="ap-vertical" id="apVertical">
+                            <div class="active" id="apVerticalActive">--</div>
+                            <div class="armed" id="apVerticalArmed"></div>
+                        </div>
                     </div>
                     <div class="ap-controls">
                         <div class="ap-toggle-dpad-col">
@@ -102,8 +108,7 @@
                             <div class="ap-value-row-left">
                                 <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
                             </div>
-                            <input type="number" id="vsInput" readonly title="Click to sync from current sim VS"
-                                step="1">
+                            <input type="number" id="vsInput" title="Click to sync from current sim VS" step="1">
                             <div class="ap-value-row-right">
                                 <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
                                 <span class="unit">fpm</span>
@@ -117,8 +122,7 @@
                                 <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
                                 <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
                             </div>
-                            <input type="number" id="altInput" readonly title="Click to sync from current sim altitude"
-                                step="1">
+                            <input type="number" id="altInput" title="Click to sync from current sim altitude" step="1">
                             <div class="ap-value-row-right">
                                 <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
                                 <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>

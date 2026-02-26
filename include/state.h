@@ -51,10 +51,10 @@ struct AutopilotState {
     float headingKp = 0.0f;
     float vsKp = 0.0f;
 
-    // Flags: is the selected value currently active/armed?
     bool hasSelectedHeading = false;
     bool hasSelectedAltitude = false;
     bool hasSelectedVerticalSpeed = false;
+    bool altHoldArmed = false;       // Is ALTS armed for capture?
 };
 
 // -----------------------------------------------------------------------------

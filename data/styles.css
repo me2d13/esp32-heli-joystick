@@ -247,13 +247,13 @@ h1 {
 .ap-pfd {
     flex: 1;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
     background: #0a0a0a;
     border: 1px solid #1a3d1a;
     border-radius: 8px;
-    padding: 8px 16px;
-    min-height: 40px;
+    padding: 6px 16px;
+    min-height: 54px;
 }
 
 .ap-lateral,
@@ -262,7 +262,21 @@ h1 {
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.9em;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.ap-pfd .active {
     color: #00cc44;
+    /* Green for active */
+}
+
+.ap-pfd .armed {
+    color: #e8e8e8;
+    /* White/Light Gray for armed */
+    font-size: 0.85em;
+    opacity: 0.8;
 }
 
 .ap-lateral {
@@ -281,7 +295,16 @@ h1 {
 }
 
 .ap-pfd .inactive {
-    color: #333;
+    color: #333 !important;
+}
+
+.ap-center {
+    align-self: center;
+}
+
+.ap-pfd .armed {
+    color: #e8e8e8;
+    /* White/Light Gray for armed modes */
 }
 
 .ap-controls {

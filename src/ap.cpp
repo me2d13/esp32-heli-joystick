@@ -174,36 +174,60 @@ void handleAP() {
         return;
     }
 
-    // 2. Vertical: pitch hold or vertical speed hold via PID
+    // 2. Vertical: pitch hold, vertical speed, or altitude hold via PID
     if (state.autopilot.verticalMode == APVerticalMode::PitchHold ||
-        state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
+        state.autopilot.verticalMode == APVerticalMode::VerticalSpeed ||
+        state.autopilot.verticalMode == APVerticalMode::AltitudeHold) {
         if (newData) {
             pitchPid.SetTunings(state.autopilot.pitchKp, state.autopilot.pitchKi, state.autopilot.pitchKd);
-            float targetPitch = state.autopilot.selectedPitch;
+            
+            // Handle VS and AltitudeHold (Cascaded control: Alt -> VS -> Pitch)
+            if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed ||
+                state.autopilot.verticalMode == APVerticalMode::AltitudeHold) 
+            {
+                float targetVS = 0;
+                if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
+                    targetVS = state.autopilot.selectedVerticalSpeed;
+                } else {
+                    // Altitude Hold: Outer loop (Altitude -> VS)
+                    float altError = state.autopilot.selectedAltitude - state.simulator.altitude;
+                    targetVS = altError * AP_ALTS_GAIN;
+                    if (targetVS > AP_ALTS_MAX_VS) targetVS = AP_ALTS_MAX_VS;
+                    if (targetVS < -AP_ALTS_MAX_VS) targetVS = -AP_ALTS_MAX_VS;
+                }
 
-            if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
-                // Outer loop: Sim actual - VS Setpoint
-                // Convention Check: In this sim, Positive Pitch is Nose DOWN.
-                // If sim is climbing (higher than target), error is positive -> Commands +Pitch (Nose DOWN).
-                float vsError = state.simulator.verticalSpeed - state.autopilot.selectedVerticalSpeed;
-                
-                // P-Term
+                // Inner VS-to-Pitch PI Control
+                // Sign Convention: Positive Pitch = Nose DOWN.
+                // If actual VS (climbing) > target VS, error is positive -> Commands +Pitch (Nose DOWN).
+                float vsError = state.simulator.verticalSpeed - targetVS;
                 float requestedPitch = vsError * state.autopilot.vsKp;
-
-                // I-Term: Accumulate error to capture the drift
                 vsIntegral += vsError;
-                // Anti-windup (limit I-term contribution to +/- MAX_PITCH)
-                if (vsIntegral * AP_VS_KI > AP_MAX_PITCH_ANGLE) vsIntegral = AP_MAX_PITCH_ANGLE / AP_VS_KI;
-                if (vsIntegral * AP_VS_KI < -AP_MAX_PITCH_ANGLE) vsIntegral = -AP_MAX_PITCH_ANGLE / AP_VS_KI;
+
+                // Anti-windup (limit I-term contribution)
+                float maxIContribution = AP_MAX_PITCH_ANGLE * 0.8f; // Limit I to 80% of max throw
+                if (vsIntegral * AP_VS_KI > maxIContribution) vsIntegral = maxIContribution / AP_VS_KI;
+                if (vsIntegral * AP_VS_KI < -maxIContribution) vsIntegral = -maxIContribution / AP_VS_KI;
 
                 requestedPitch += (vsIntegral * AP_VS_KI);
 
-                // Clamp to safe limits
+                // Clamp final target pitch to safe limits
                 if (requestedPitch > AP_MAX_PITCH_ANGLE) requestedPitch = AP_MAX_PITCH_ANGLE;
                 if (requestedPitch < -AP_MAX_PITCH_ANGLE) requestedPitch = -AP_MAX_PITCH_ANGLE;
 
                 // Simple smoothing
                 state.autopilot.selectedPitch = (state.autopilot.selectedPitch * 0.9f) + (requestedPitch * 0.1f);
+            }
+
+            // --- ALTS Capture Logic (Monitor when armed) ---
+            if (state.autopilot.altHoldArmed) {
+                float altDiff = fabsf(state.simulator.altitude - state.autopilot.selectedAltitude);
+                if (altDiff < AP_ALT_CAPTURE_WINDOW) {
+                    LOG_INFO("ALTS CAPTURE: Switching to Altitude Hold");
+                    state.autopilot.verticalMode = APVerticalMode::AltitudeHold;
+                    state.autopilot.altHoldArmed = false;
+                    // Note: vsIntegral is already active from current mode, 
+                    // which provides a smooth transition
+                }
             }
 
             pitchSetpoint = state.autopilot.selectedPitch;

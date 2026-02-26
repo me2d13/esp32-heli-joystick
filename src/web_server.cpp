@@ -158,6 +158,9 @@ static void buildStateJson(JsonDocument& doc) {
     autopilot["selectedHeading"] = state.autopilot.selectedHeading;
     autopilot["selectedAltitude"] = state.autopilot.selectedAltitude;
     autopilot["selectedVerticalSpeed"] = state.autopilot.selectedVerticalSpeed;
+    autopilot["hasSelectedAltitude"] = state.autopilot.hasSelectedAltitude;
+    autopilot["hasSelectedVerticalSpeed"] = state.autopilot.hasSelectedVerticalSpeed;
+    autopilot["altHoldArmed"] = state.autopilot.altHoldArmed;
     autopilot["selectedPitch"] = state.autopilot.selectedPitch;
     autopilot["selectedRoll"] = state.autopilot.selectedRoll;
     autopilot["pitchKp"] = state.autopilot.pitchKp;
@@ -311,6 +314,30 @@ void initWebServer() {
                 serializeJson(doc, json);
                 server.send(200, "application/json", json);
             });
+            server.on("/api/autopilot/alt_arm", HTTP_POST, []() {
+                if (server.hasArg("armed")) {
+                    state.autopilot.altHoldArmed = (server.arg("armed") == "true");
+                    server.send(200, "application/json", "{\"status\":\"ok\"}");
+                } else {
+                    server.send(400, "application/json", "{\"error\":\"missing param 'armed'\"}");
+                }
+            });
+
+            server.on("/api/autopilot/selected_pitch", HTTP_POST, []() {
+                if (server.hasArg("plain")) {
+                    String body = server.arg("plain");
+                    StaticJsonDocument<128> doc;
+                    DeserializationError err = deserializeJson(doc, body);
+                    if (!err && doc.containsKey("selectedPitch")) {
+                        state.autopilot.selectedPitch = doc["selectedPitch"].as<float>();
+                        server.send(200, "application/json", "{\"status\":\"ok\"}");
+                    } else {
+                        server.send(400, "application/json", "{\"error\":\"Invalid JSON or missing selectedPitch\"}");
+                    }
+                } else {
+                    server.send(400, "application/json", "{\"error\":\"Missing body\"}");
+                }
+            });
             server.on("/api/autopilot", HTTP_POST, []() {
                 if (!server.hasArg("plain")) {
                     server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
@@ -352,6 +379,10 @@ void initWebServer() {
                 if (doc.containsKey("selectedVerticalSpeed")) {
                     state.autopilot.selectedVerticalSpeed = doc["selectedVerticalSpeed"].as<float>();
                     state.autopilot.hasSelectedVerticalSpeed = true;
+                }
+                if (doc.containsKey("selectedAltitude")) {
+                    state.autopilot.selectedAltitude = doc["selectedAltitude"].as<float>();
+                    state.autopilot.hasSelectedAltitude = true;
                 }
                 // Return updated state
                 StaticJsonDocument<512> stateDoc;

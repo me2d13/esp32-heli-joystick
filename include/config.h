@@ -137,6 +137,9 @@
 #define AP_VS_KP                   0.005f // Pitch angle (deg) per fpm of VS error
 #define AP_VS_KI                   0.0002f// Dampened integral gain (per update cycle)
 #define AP_MAX_PITCH_ANGLE         10.0f  // Max pitch during VS hold (degrees)
+#define AP_ALT_CAPTURE_WINDOW      50.0f  // Altitude window to trigger ALTS capture (feet/meters)
+#define AP_ALTS_GAIN               2.0f   // VS (fpm) per foot of altitude error
+#define AP_ALTS_MAX_VS             1000.0f// Max VS (fpm) during altitude capture/hold
 
 /*
                                                                               

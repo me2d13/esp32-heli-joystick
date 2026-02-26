@@ -132,6 +132,18 @@ function syncAltitudeFromSim() {
     if (alt === undefined || alt === null) return;
     selectedAltitude = Math.round(alt);
     document.getElementById('altInput').value = selectedAltitude;
+    updateAltitudeOnServer();
+}
+
+function updateAltitudeOnServer() {
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedAltitude: selectedAltitude })
+    })
+        .then(response => response.json())
+        .then(data => updateAutopilotDisplay(data.autopilot || {}))
+        .catch(err => console.error('Altitude update failed:', err));
 }
 
 function updateVSDisplay() {
@@ -221,48 +233,80 @@ function updateAutopilotDisplay(ap) {
     const vsBtn = document.getElementById('apVsBtn');
     if (vsBtn) vsBtn.classList.toggle('on', vMode === 'vs');
 
-    document.getElementById('hdgSlider').value = Math.round(ap.selectedHeading || 0);
-    document.getElementById('hdgInput').value = Math.round(ap.selectedHeading || 0);
+    // Update HDG input/slider only if not focused
+    if (document.activeElement !== document.getElementById('hdgSlider') &&
+        document.activeElement !== document.getElementById('hdgInput')) {
+        document.getElementById('hdgSlider').value = Math.round(ap.selectedHeading || 0);
+        document.getElementById('hdgInput').value = Math.round(ap.selectedHeading || 0);
+    }
 
-    // Sync VS/Altitude from server state
-    if (ap.selectedVerticalSpeed !== undefined) {
+    // Sync VS/Altitude from server state only if not focused
+    if (ap.selectedVerticalSpeed !== undefined && document.activeElement !== document.getElementById('vsInput')) {
         selectedVS = Math.round(ap.selectedVerticalSpeed);
         document.getElementById('vsInput').value = selectedVS;
     }
-    if (ap.selectedAltitude !== undefined) {
+    if (ap.selectedAltitude !== undefined && document.activeElement !== document.getElementById('altInput')) {
         selectedAltitude = Math.round(ap.selectedAltitude);
         document.getElementById('altInput').value = selectedAltitude;
     }
+
+    const latActiveEl = document.getElementById('apLateralActive');
+    const latArmedEl = document.getElementById('apLateralArmed');
+    const vertActiveEl = document.getElementById('apVerticalActive');
+    const vertArmedEl = document.getElementById('apVerticalArmed');
 
     // Center: AP when enabled
     centerEl.textContent = enabled ? 'AP' : '--';
     centerEl.classList.toggle('inactive', !enabled);
 
-    // Display current/target values (for debugging target tracking)
+    // Track current targets for D-Pad adjustments
     verticalEl.dataset.value = ap.selectedPitch || 0;
     lateralEl.dataset.value = ap.selectedRoll || 0;
 
-    let lateralText = '--';
-    if (enabled && hMode === 'roll') lateralText = 'ROLL ' + Math.round(ap.selectedRoll) + '°';
-    else if (enabled && hMode === 'hdg') {
-        const hdg = ap.selectedHeading ?? 0;
-        lateralText = 'HDG ' + Math.round(hdg);
+    // Lateral Display
+    let latActiveText = '--';
+    let latArmedText = '';
+    if (enabled) {
+        if (hMode === 'roll') latActiveText = 'ROLL ' + Math.round(ap.selectedRoll) + '°';
+        else if (hMode === 'hdg') latActiveText = 'HDG ' + Math.round(ap.selectedHeading ?? 0);
     }
-    lateralEl.textContent = lateralText;
-    lateralEl.classList.toggle('inactive', !enabled || hMode === 'off');
+    latActiveEl.textContent = latActiveText;
+    latArmedEl.textContent = latArmedText;
+    latActiveEl.classList.toggle('inactive', !enabled || hMode === 'off');
 
-    // Right: vertical mode (PITCH, VS, ALTS, or --)
-    let verticalText = '--';
-    if (enabled && vMode === 'pitch') verticalText = 'PITCH ' + Math.round(ap.selectedPitch) + '°';
-    else if (enabled && vMode === 'vs') {
-        const vs = ap.selectedVerticalSpeed ?? 0;
-        verticalText = 'VS ' + Math.round(vs);
-    } else if (enabled && vMode === 'alts') {
-        const alt = ap.selectedAltitude ?? 0;
-        verticalText = 'ALTS ' + Math.round(alt);
+    // Vertical Display
+    let vertActiveText = '--';
+    let vertArmedText = '';
+
+    if (enabled) {
+        if (vMode === 'pitch') {
+            vertActiveText = 'PITCH ' + Math.round(ap.selectedPitch) + '°';
+        } else if (vMode === 'vs') {
+            vertActiveText = 'VS ' + Math.round(ap.selectedVerticalSpeed || 0);
+        } else if (vMode === 'alts') {
+            vertActiveText = 'ALTS ' + Math.round(ap.selectedAltitude || 0);
+        }
+
+        // Show armed ALT on second line if not active
+        if (ap.altHoldArmed && vMode !== 'alts') {
+            vertArmedText = 'ALTS ' + Math.round(ap.selectedAltitude || 0);
+        }
     }
-    verticalEl.textContent = verticalText;
-    verticalEl.classList.toggle('inactive', !enabled || vMode === 'off');
+
+    vertActiveEl.textContent = vertActiveText;
+    vertArmedEl.textContent = vertArmedText;
+    vertActiveEl.classList.toggle('inactive', !enabled || vMode === 'off');
+
+    // Update ALTS button state
+    const altsBtn = document.getElementById('apAltsBtn');
+    if (altsBtn) {
+        altsBtn.classList.toggle('on', vMode === 'alts' || ap.altHoldArmed);
+        if (ap.altHoldArmed && vMode !== 'alts') {
+            altsBtn.style.boxShadow = '0 0 10px #fff'; // White glow for armed
+        } else {
+            altsBtn.style.boxShadow = '';
+        }
+    }
 }
 
 function connect() {
@@ -437,9 +481,37 @@ document.getElementById('apRollRightBtn').addEventListener('click', () => adjust
 // Mode controls
 document.getElementById('apHdgBtn').addEventListener('click', toggleHDG);
 document.getElementById('apVsBtn').addEventListener('click', toggleVS);
+document.getElementById('apAltsBtn').addEventListener('click', toggleALTS);
 document.getElementById('hdgInput').addEventListener('click', syncHeadingFromSim);
 document.getElementById('vsInput').addEventListener('click', syncVSFromSim);
 document.getElementById('altInput').addEventListener('click', syncAltitudeFromSim);
+
+document.getElementById('altInput').addEventListener('change', (e) => {
+    selectedAltitude = parseInt(e.target.value);
+    updateAltitudeOnServer();
+});
+document.getElementById('vsInput').addEventListener('change', (e) => {
+    selectedVS = parseInt(e.target.value);
+    updateVSOnServer();
+});
+
+function toggleALTS() {
+    const btn = document.getElementById('apAltsBtn');
+    if (!btn) return;
+    const currentlyOn = btn.classList.contains('on');
+    const newState = !currentlyOn;
+
+    fetch('/api/autopilot/alt_arm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'armed=' + (newState ? 'true' : 'false')
+    })
+        .then(response => response.json())
+        .then(data => {
+            // State will be updated via WebSocket broadcast
+        })
+        .catch(err => console.error('ALTS arm failed:', err));
+}
 
 function toggleVS() {
     const btn = document.getElementById('apVsBtn');
@@ -469,11 +541,11 @@ document.getElementById('vsPlus100').addEventListener('click', () => {
     updateVSOnServer();
 });
 
-// Altitude adjustment buttons (local only, no API)
-document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude -= 1000; updateAltitudeDisplay(); });
-document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude -= 100; updateAltitudeDisplay(); });
-document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude += 100; updateAltitudeDisplay(); });
-document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude += 1000; updateAltitudeDisplay(); });
+// Altitude adjustment buttons
+document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude -= 1000; updateAltitudeDisplay(); updateAltitudeOnServer(); });
+document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude -= 100; updateAltitudeDisplay(); updateAltitudeOnServer(); });
+document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude += 100; updateAltitudeDisplay(); updateAltitudeOnServer(); });
+document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude += 1000; updateAltitudeDisplay(); updateAltitudeOnServer(); });
 
 // Heading adjustment
 const hdgSlider = document.getElementById('hdgSlider');
