@@ -33,6 +33,9 @@ static const char* apVerticalModeStr(APVerticalMode m) {
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
+#include <ESP.h>
+#include <freertos/task.h>
+#include "profile.h"
 
 // Helper function to check if WiFi is enabled
 bool isWiFiEnabled() {
@@ -309,6 +312,34 @@ void initWebServer() {
             
             // Setup web server routes
             server.on("/", handleRoot);
+            server.on("/debug", []() {
+                if (!serveStaticFile("/debug.html")) {
+                    server.send(500, "text/plain", "Failed to load debug.html. Upload filesystem with: pio run -t uploadfs");
+                }
+            });
+            server.on("/api/debug", []() {
+                StaticJsonDocument<768> doc;
+                doc["uptimeMs"] = millis();
+                doc["freeHeap"] = ESP.getFreeHeap();
+                doc["minFreeHeap"] = ESP.getMinFreeHeap();
+                doc["heapSize"] = ESP.getHeapSize();
+                doc["chipModel"] = ESP.getChipModel();
+                doc["chipRevision"] = ESP.getChipRevision();
+                doc["cpuFreqMHz"] = ESP.getCpuFreqMHz();
+                TaskHandle_t t = xTaskGetCurrentTaskHandle();
+                UBaseType_t stackLeft = (t != NULL) ? uxTaskGetStackHighWaterMark(t) : 0;
+                doc["stackHighWaterMark"] = stackLeft * 4;  // words to bytes
+                JsonArray tasks = doc.createNestedArray("loopTasks");
+                for (uint8_t i = 0; i < PROFILE_SLOT_COUNT; i++) {
+                    JsonObject o = tasks.createNestedObject();
+                    o["name"] = profileGetName(i);
+                    o["lastMs"] = profileGetLastMs(i);
+                    o["maxMs"] = profileGetMaxMs(i);
+                }
+                String json;
+                serializeJson(doc, json);
+                server.send(200, "application/json", json);
+            });
             server.on("/api/state", []() {
                 StaticJsonDocument<1024> doc;
                 buildStateJson(doc);
@@ -511,6 +542,20 @@ void initWebServer() {
         LOG_INFO("=== WiFi Disabled ===");
         LOG_INFO("WiFi SSID not configured. Running without WiFi.");
     }
+}
+
+static void webTask(void* arg) {
+    (void)arg;
+    for (;;) {
+        handleWebServer();
+        vTaskDelay(1);  // Yield to other tasks
+    }
+}
+
+void startWebServerTask() {
+    if (!isWiFiEnabled()) return;
+    xTaskCreatePinnedToCore(webTask, "web", 4096, NULL, 0, NULL, 0);
+    LOG_INFO("Web server task started (Core 0, low priority)");
 }
 
 void handleWebServer() {

@@ -6,7 +6,11 @@
 // Initialize WiFi and web server (if WiFi credentials are configured)
 void initWebServer();
 
-// Handle web server requests (call this in loop)
+// Start web server task (runs handleWebServer in background at low priority)
+// Call after initWebServer(). When used, do NOT call handleWebServer() from main loop.
+void startWebServerTask();
+
+// Handle web server requests (called from web task, or from loop if task not started)
 void handleWebServer();
 
 // Get WiFi connection status

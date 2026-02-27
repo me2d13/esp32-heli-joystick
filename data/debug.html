@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Debug - Heli Joystick</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 ESP32 Debug</h1>
+        <p class="subtitle">System health & resource monitoring</p>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-title">📊 Memory</div>
+                <div class="status-row">
+                    <span class="status-label">Free Heap</span>
+                    <span class="status-value" id="freeHeap">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Min Free Heap (lifetime)</span>
+                    <span class="status-value" id="minFreeHeap">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Total Heap Size</span>
+                    <span class="status-value" id="heapSize">--</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⏱️ Runtime</div>
+                <div class="status-row">
+                    <span class="status-label">Uptime</span>
+                    <span class="status-value" id="uptime">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Stack Free (main task)</span>
+                    <span class="status-value" id="stackHighWaterMark">--</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🖥️ Chip</div>
+                <div class="status-row">
+                    <span class="status-label">Model</span>
+                    <span class="status-value" id="chipModel">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Revision</span>
+                    <span class="status-value" id="chipRevision">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">CPU Freq</span>
+                    <span class="status-value" id="cpuFreqMHz">--</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📡 Connection</div>
+                <div class="status-row">
+                    <span class="status-label">Last Update</span>
+                    <span class="status-value" id="lastUpdate">--</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⏱️ Loop Task Timing (ms)</div>
+                <p style="font-size: 0.8em; color: #8892b0; margin-bottom: 12px;">Last / Max per iteration. Logged when &gt;50ms.</p>
+                <div id="loopTasks"></div>
+            </div>
+        </div>
+
+        <p class="footer">
+            <a href="/" style="color: #64ffda;">← Back to Dashboard</a>
+        </p>
+    </div>
+
+    <script>
+        function formatBytes(n) {
+            if (n === undefined || n === null) return '--';
+            return n.toLocaleString() + ' B';
+        }
+
+        function formatUptime(ms) {
+            if (ms === undefined || ms === null) return '--';
+            const s = Math.floor(ms / 1000);
+            const m = Math.floor(s / 60);
+            const h = Math.floor(m / 60);
+            if (h > 0) return h + 'h ' + (m % 60) + 'm ' + (s % 60) + 's';
+            if (m > 0) return m + 'm ' + (s % 60) + 's';
+            return s + 's';
+        }
+
+        function fetchDebug() {
+            fetch('/api/debug')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('freeHeap').textContent = formatBytes(data.freeHeap);
+                    document.getElementById('minFreeHeap').textContent = formatBytes(data.minFreeHeap);
+                    document.getElementById('heapSize').textContent = formatBytes(data.heapSize);
+                    document.getElementById('uptime').textContent = formatUptime(data.uptimeMs);
+                    document.getElementById('stackHighWaterMark').textContent = formatBytes(data.stackHighWaterMark);
+                    document.getElementById('chipModel').textContent = data.chipModel || '--';
+                    document.getElementById('chipRevision').textContent = data.chipRevision ?? '--';
+                    document.getElementById('cpuFreqMHz').textContent = (data.cpuFreqMHz ?? '--') + ' MHz';
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+                    const tasks = data.loopTasks;
+                    const el = document.getElementById('loopTasks');
+                    if (tasks && Array.isArray(tasks)) {
+                        el.innerHTML = tasks.map(t => {
+                            const maxClass = (t.maxMs || 0) > 50 ? 'status-offline' : '';
+                            return '<div class="status-row"><span class="status-label">' + t.name + '</span>' +
+                                '<span class="status-value ' + maxClass + '">' + (t.lastMs || 0) + ' / ' + (t.maxMs || 0) + '</span></div>';
+                        }).join('');
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('lastUpdate').textContent = 'Error: ' + err.message;
+                });
+        }
+
+        fetchDebug();
+        setInterval(fetchDebug, 2000);
+    </script>
+</body>
+
+</html>

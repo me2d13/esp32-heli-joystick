@@ -12,6 +12,7 @@
 #include "steppers.h"
 #include "ap.h"
 #include "cyclic_feedback.h"
+#include "profile.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -20,6 +21,7 @@ void setup() {
   
   // Initialize logger
   logger.begin(LOG_BUFFER_SIZE);
+  initProfile();
   
   LOG_INFO("=== ESP32 Heli Joystick ===");
   
@@ -59,6 +61,7 @@ void setup() {
   
   // Initialize WiFi and web server
   initWebServer();
+  startWebServerTask();  // Run web/OTA in background task (low priority)
   
   // Set LED status based on WiFi state
   if (!isWiFiEnabled()) {
@@ -82,44 +85,50 @@ void loop() {
   static unsigned long lastHeartbeat = 0;
   unsigned long now = millis();
 
-  // Handle button scanning and updates
+  profileStart(PROFILE_BUTTONS);
   handleButtons();
-  
-  // Process incoming cyclic sensor data and update joystick
+  profileEnd(PROFILE_BUTTONS);
+
+  profileStart(PROFILE_CYCLIC_SERIAL);
   handleCyclicSerial();
+  profileEnd(PROFILE_CYCLIC_SERIAL);
 
-  // Process incoming simulator data (JSON)
+  profileStart(PROFILE_SIMULATOR);
   handleSimulatorSerial();
-  
-  // Read collective axis and update joystick
+  profileEnd(PROFILE_SIMULATOR);
+
+  profileStart(PROFILE_COLLECTIVE);
   handleCollective();
+  profileEnd(PROFILE_COLLECTIVE);
 
-  // Autopilot logic (overrides joystick when AP on)
+  profileStart(PROFILE_AP);
   handleAP();
+  profileEnd(PROFILE_AP);
 
-  // Handle stepper motor buttons (FTR toggles)
+  profileStart(PROFILE_STEPPERS);
   handleSteppers();
+  profileEnd(PROFILE_STEPPERS);
 
-  // Cyclic feedback: move X-Y steppers to chase joystick when AP on + cyclic held
+  profileStart(PROFILE_CYCLIC_FEEDBACK);
   handleCyclicFeedback();
-  
-  // Handle buzzer state machine (non-blocking beeps)
+  profileEnd(PROFILE_CYCLIC_FEEDBACK);
+
+  profileStart(PROFILE_BUZZER);
   handleBuzzer();
-  
-  // Handle web server and OTA
-  handleWebServer();
-  
-  // Consolidate joystick updates (rate-limited inside the function)
+  profileEnd(PROFILE_BUZZER);
+
+  profileStart(PROFILE_JOYSTICK);
   updateJoystick();
+  profileEnd(PROFILE_JOYSTICK);
 
-  // Update LED animations (e.g., blinking)
+  profileStart(PROFILE_STATUS_LED);
   updateStatusLED();
+  profileEnd(PROFILE_STATUS_LED);
 
-  // Periodic heartbeat to serial (UART0) so user can see it's alive
   if (now - lastHeartbeat >= 2000) {
     lastHeartbeat = now;
     LOG_DEBUGF("Heartbeat: %lu ms", now);
   }
   
-  delay(10); // Small delay to prevent tight loop
+  delay(10);
 }
