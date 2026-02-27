@@ -19,4 +19,9 @@ void toggleCyclicHold();
 bool isCollectiveHeld();
 bool isCyclicHeld();
 
+// Step cyclic motors (for cyclic feedback - only when cyclic is held)
+// dir: true = one direction, false = other (direction depends on wiring)
+void stepCyclicX(bool dir);
+void stepCyclicY(bool dir);
+
 #endif // STEPPERS_H

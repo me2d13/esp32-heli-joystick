@@ -189,6 +189,7 @@ static void buildStateJson(JsonDocument& doc) {
     simulator["lastSimDataAgeMs"] = age;
 
     doc["telemetryEnabled"] = state.telemetryEnabled;
+    doc["cyclicFeedbackEnabled"] = state.cyclicFeedbackEnabled;
     if (state.telemetryEnabled) {
         char buf[256];
         // CSV: ms,ap,hMode,vMode,pitch,roll,hdg,vs,spd,sel_p,sel_r,sel_hdg,sel_vs,outY,outX
@@ -453,6 +454,20 @@ void initWebServer() {
                 String json;
                 serializeJson(stateDoc, json);
                 server.send(200, "application/json", json);
+            });
+            server.on("/api/cyclic_feedback", HTTP_POST, []() {
+                if (!server.hasArg("plain")) {
+                    server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
+                    return;
+                }
+                String body = server.arg("plain");
+                StaticJsonDocument<128> doc;
+                deserializeJson(doc, body);
+                if (doc.containsKey("enabled")) {
+                    state.cyclicFeedbackEnabled = doc["enabled"].as<bool>();
+                    LOG_INFOF("Cyclic feedback: %s", state.cyclicFeedbackEnabled ? "ON" : "OFF");
+                }
+                server.send(200, "application/json", state.cyclicFeedbackEnabled ? "{\"enabled\":true}" : "{\"enabled\":false}");
             });
             server.on("/api/telemetry", HTTP_POST, []() {
                 if (!server.hasArg("plain")) {

@@ -355,6 +355,12 @@ function connect() {
                 sensors.cyclicValid = sensors.cyclicValid ?? data.cyclicValid;
             }
 
+            // Cyclic feedback checkbox
+            const cyclicFeedbackCheckbox = document.getElementById('cyclicFeedbackCheckbox');
+            if (cyclicFeedbackCheckbox && data.cyclicFeedbackEnabled !== undefined) {
+                cyclicFeedbackCheckbox.checked = data.cyclicFeedbackEnabled;
+            }
+
             // Autopilot & Simulator display
             const ap = data.autopilot || {};
             const sim = data.simulator || {};
@@ -560,6 +566,18 @@ hdgSlider.addEventListener('input', (e) => {
 hdgInput.addEventListener('change', (e) => {
     hdgSlider.value = e.target.value;
     updateHeading(e.target.value);
+});
+
+// Cyclic feedback checkbox
+document.getElementById('cyclicFeedbackCheckbox').addEventListener('change', function () {
+    const enabled = this.checked;
+    fetch('/api/cyclic_feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+    })
+        .then(response => response.json())
+        .catch(err => console.error('Cyclic feedback toggle failed:', err));
 });
 
 // Start connection and load logs

@@ -11,6 +11,7 @@
 #include "buzzer.h"
 #include "steppers.h"
 #include "ap.h"
+#include "cyclic_feedback.h"
 
 void setup() {
   // Initialize Serial for debugging
@@ -45,6 +46,9 @@ void setup() {
 
   // Initialize autopilot
   initAP();
+
+  // Initialize cyclic feedback (steppers chase joystick when AP + cyclic held)
+  initCyclicFeedback();
 
   // Initialize status LED
   initStatusLED();
@@ -95,6 +99,9 @@ void loop() {
 
   // Handle stepper motor buttons (FTR toggles)
   handleSteppers();
+
+  // Cyclic feedback: move X-Y steppers to chase joystick when AP on + cyclic held
+  handleCyclicFeedback();
   
   // Handle buzzer state machine (non-blocking beeps)
   handleBuzzer();

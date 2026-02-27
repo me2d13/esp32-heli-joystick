@@ -66,12 +66,12 @@
 #define PIN_CYCLIC_RX 13
 #define PIN_CYCLIC_TX 14
 
-#define PIN_CYCLIC_X_ENABLED 1
-#define PIN_CYCLIC_X_STEP 2
-#define PIN_CYCLIC_X_DIR 42
-#define PIN_CYCLIC_Y_ENABLED 41
-#define PIN_CYCLIC_Y_STEP 39
-#define PIN_CYCLIC_Y_DIR 38
+#define PIN_CYCLIC_X_ENABLED 41
+#define PIN_CYCLIC_X_STEP 39
+#define PIN_CYCLIC_X_DIR 38
+#define PIN_CYCLIC_Y_ENABLED 1
+#define PIN_CYCLIC_Y_STEP 2
+#define PIN_CYCLIC_Y_DIR 42
 
 #define PIN_BUZZER 21
 
@@ -171,6 +171,17 @@
                                 └──┘  └──┘                                    
                                                                               
 */ 
+
+// ----------------------------------------------------------------------------
+// Cyclic Feedback (steppers chase joystick position when AP + cyclic held)
+// ----------------------------------------------------------------------------
+// When cyclic feedback is on: X-Y steppers move physical stick toward joystick
+// output. Direction depends on wiring; flip these if stick moves wrong way.
+#define CYCLIC_FEEDBACK_DEADBAND     75    // Axis units (0-10000): don't move if error smaller
+#define CYCLIC_FEEDBACK_STEP_MS      40    // Min ms between steps per axis (higher = slower)
+#define CYCLIC_FEEDBACK_X_ENABLED    1     // 0 = disable X for tuning, 1 = enable
+#define CYCLIC_FEEDBACK_X_DIR_POS    1     // 1 = HIGH increases sensor, 0 = LOW increases
+#define CYCLIC_FEEDBACK_Y_DIR_POS    1     // Same for Y axis
 
 // ----------------------------------------------------------------------------
 // Logging Configuration

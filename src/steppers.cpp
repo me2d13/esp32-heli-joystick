@@ -42,8 +42,8 @@ void initSteppers() {
     
     LOG_INFO("Stepper motors initialized");
     LOG_INFO("  Collective motor: GPIO4(DIR), GPIO5(STEP), GPIO16(EN)");
-    LOG_INFO("  Cyclic X motor: GPIO42(DIR), GPIO2(STEP), GPIO1(EN)");
-    LOG_INFO("  Cyclic Y motor: GPIO38(DIR), GPIO39(STEP), GPIO41(EN)");
+    LOG_INFOF("  Cyclic X motor: GPIO%d(DIR), GPIO%d(STEP), GPIO%d(EN)", PIN_CYCLIC_X_DIR, PIN_CYCLIC_X_STEP, PIN_CYCLIC_X_ENABLED);
+    LOG_INFOF("  Cyclic Y motor: GPIO%d(DIR), GPIO%d(STEP), GPIO%d(EN)", PIN_CYCLIC_Y_DIR, PIN_CYCLIC_Y_STEP, PIN_CYCLIC_Y_ENABLED);
     LOG_INFO("  All motors disabled (free movement)");
     LOG_INFO("  Enable pins: Active LOW");
 }
@@ -116,4 +116,18 @@ bool isCollectiveHeld() {
 
 bool isCyclicHeld() {
     return cyclicHeld;
+}
+
+void stepCyclicX(bool dir) {
+    digitalWrite(PIN_CYCLIC_X_DIR, dir ? HIGH : LOW);
+    digitalWrite(PIN_CYCLIC_X_STEP, HIGH);
+    delayMicroseconds(2);  // Minimal pulse width for stepper driver
+    digitalWrite(PIN_CYCLIC_X_STEP, LOW);
+}
+
+void stepCyclicY(bool dir) {
+    digitalWrite(PIN_CYCLIC_Y_DIR, dir ? HIGH : LOW);
+    digitalWrite(PIN_CYCLIC_Y_STEP, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(PIN_CYCLIC_Y_STEP, LOW);
 }
