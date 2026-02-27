@@ -40,6 +40,9 @@ static PID rollPid(&rollInput, &rollOutput, &rollSetpoint,
 // Vertical speed (Outer loop) state
 static double vsIntegral = 0;
 
+// Heading hold: smoothed roll command (rate-limited to avoid kick on heading change)
+static float smoothedHeadingRoll = 0.0f;
+
 void initAP() {
     state.autopilot.enabled = false;
     state.autopilot.horizontalMode = APHorizontalMode::Off;
@@ -255,22 +258,25 @@ void handleAP() {
 
             if (state.autopilot.horizontalMode == APHorizontalMode::HeadingHold) {
                 // Outer Loop: Heading -> Target Roll
-                // Inverted sign to fix direction: Current - Target (or Target - Current with negative gain)
                 float headingError = state.simulator.heading - state.autopilot.selectedHeading;
-                
-                // Wrap to shortest turn (-180 to 180)
                 while (headingError > 180.0f) headingError -= 360.0f;
                 while (headingError < -180.0f) headingError += 360.0f;
 
-                // Calculate requested bank (P-controller)
-                targetRoll = headingError * state.autopilot.headingKp;
+                // Compute desired bank (P-controller)
+                float desiredRoll = headingError * state.autopilot.headingKp;
+                if (desiredRoll > AP_MAX_BANK_ANGLE) desiredRoll = AP_MAX_BANK_ANGLE;
+                if (desiredRoll < -AP_MAX_BANK_ANGLE) desiredRoll = -AP_MAX_BANK_ANGLE;
 
-                // Clamp to safe limits
-                if (targetRoll > AP_MAX_BANK_ANGLE) targetRoll = AP_MAX_BANK_ANGLE;
-                if (targetRoll < -AP_MAX_BANK_ANGLE) targetRoll = -AP_MAX_BANK_ANGLE;
+                // Rate-limit: from current roll, move towards desired by max AP_HEADING_ROLL_RATE per update
+                float delta = desiredRoll - state.simulator.roll;
+                if (delta > AP_HEADING_ROLL_RATE) delta = AP_HEADING_ROLL_RATE;
+                if (delta < -AP_HEADING_ROLL_RATE) delta = -AP_HEADING_ROLL_RATE;
+                targetRoll = state.simulator.roll + delta;
+                smoothedHeadingRoll = targetRoll;  // For display / consistency
 
-                // Update selectedRoll for telemetry display (indicator on web)
-                state.autopilot.selectedRoll = targetRoll;
+                state.autopilot.selectedRoll = desiredRoll;  // Display: show desired (target)
+            } else {
+                smoothedHeadingRoll = targetRoll;
             }
 
             rollPid.SetTunings(state.autopilot.rollKp, state.autopilot.rollKi, state.autopilot.rollKd);

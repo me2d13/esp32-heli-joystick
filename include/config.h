@@ -132,6 +132,7 @@
 // Heading navigation (Outer loop)
 #define AP_HEADING_KP              1.0f   // Bank angle per degree of heading error
 #define AP_MAX_BANK_ANGLE          15.0f  // Max bank during turns (degrees)
+#define AP_HEADING_ROLL_RATE       3.0f   // Max roll change (deg) per update - smooths heading change kick
 
 // Vertical speed navigation (Outer loop)
 #define AP_VS_KP                   0.005f // Pitch angle (deg) per fpm of VS error
