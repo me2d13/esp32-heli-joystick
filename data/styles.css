@@ -410,6 +410,10 @@ h1 {
     margin-top: 12px;
 }
 
+.pid-section-checkbox {
+    margin-bottom: 15px;
+}
+
 .ap-checkbox-label {
     display: flex;
     align-items: center;

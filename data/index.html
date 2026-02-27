@@ -92,20 +92,23 @@
                         </div>
                     </div>
                 </div> <!-- End ap-layout -->
-                <div class="ap-cyclic-feedback">
-                    <label class="ap-checkbox-label">
-                        <input type="checkbox" id="cyclicFeedbackCheckbox" title="When AP on + cyclic held: steppers move stick to follow joystick output">
-                        <span>Cyclic feedback</span>
-                    </label>
-                </div>
                 <div class="ap-extra-controls">
                     <div class="ap-input-group">
                         <label>Selected Heading</label>
-                        <div class="ap-slider-row">
-                            <input type="range" id="hdgSlider" min="0" max="359" value="0">
+                        <div class="ap-value-row">
+                            <div class="ap-value-row-left">
+                                <button class="ap-btn ap-adj-btn" id="hdgMinus90">-90</button>
+                                <button class="ap-btn ap-adj-btn" id="hdgMinus10">-10</button>
+                                <button class="ap-btn ap-adj-btn" id="hdgMinus1">-1</button>
+                            </div>
                             <input type="number" id="hdgInput" min="0" max="359" value="0" readonly
                                 title="Click to sync from current sim heading">
-                            <span class="unit">°</span>
+                            <div class="ap-value-row-right">
+                                <button class="ap-btn ap-adj-btn" id="hdgPlus1">+1</button>
+                                <button class="ap-btn ap-adj-btn" id="hdgPlus10">+10</button>
+                                <button class="ap-btn ap-adj-btn" id="hdgPlus90">+90</button>
+                                <span class="unit">°</span>
+                            </div>
                         </div>
                     </div>
                     <div class="ap-input-group">
@@ -203,7 +206,13 @@
             </div>
 
             <div class="card pid-card">
-                <div class="card-title">⚙️ PID Tuning</div>
+                <div class="card-title">⚙️ Autopilot Parameters</div>
+                <div class="ap-cyclic-feedback pid-section-checkbox">
+                    <label class="ap-checkbox-label">
+                        <input type="checkbox" id="cyclicFeedbackCheckbox" title="When AP on + cyclic held: steppers move stick to follow joystick output">
+                        <span>Cyclic feedback</span>
+                    </label>
+                </div>
                 <div class="pid-controls-grid">
                     <div class="pid-axis-label">Pitch</div>
                     <div class="pid-group">

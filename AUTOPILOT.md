@@ -1,5 +1,9 @@
 # Autopilot Implementation & Tuning Notes
 
+## Simulator Data Source
+
+Simulator data (pitch, roll, heading, altitude, vertical speed, etc.) is received from the flight sim via UDP/JSON. For **Microsoft Flight Simulator (MSFS)**, the data is provided by the [msfs-web-api](https://github.com/me2d13/msfs-web-api) tool, which streams SimConnect variables via UDP.
+
 ## Vertical Speed (VS) Mode Enhancement
 The Vertical Speed mode uses a cascaded PI architecture to maintain a selected climb or descent rate.
 

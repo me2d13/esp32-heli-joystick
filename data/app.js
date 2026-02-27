@@ -3,6 +3,7 @@ let updateCount = 0;
 let lastSecond = Date.now();
 let currentHz = 0;
 let lastSimData = {};
+let selectedHeading = 0;
 let selectedVS = 0;
 let selectedAltitude = 0;
 let isRecording = false;
@@ -89,23 +90,28 @@ function toggleHDG() {
         .catch(err => console.error('HDG toggle failed:', err));
 }
 
-function updateHeading(value) {
-    fetch('/api/autopilot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedHeading: parseFloat(value) })
-    })
-        .then(response => response.json())
-        .catch(err => console.error('Heading update failed:', err));
-}
 
 function syncHeadingFromSim() {
     const hdg = lastSimData.heading;
     if (hdg === undefined || hdg === null) return;
-    const value = Math.round(hdg) % 360;
-    document.getElementById('hdgSlider').value = value;
-    document.getElementById('hdgInput').value = value;
-    updateHeading(value);
+    selectedHeading = ((Math.round(hdg) % 360) + 360) % 360;
+    document.getElementById('hdgInput').value = selectedHeading;
+    updateHeadingOnServer();
+}
+
+function updateHeadingOnServer() {
+    fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedHeading: selectedHeading })
+    })
+        .then(response => response.json())
+        .then(data => updateAutopilotDisplay(data.autopilot || {}))
+        .catch(err => console.error('Heading update failed:', err));
+}
+
+function wrapHeading(h) {
+    return ((Math.round(h) % 360) + 360) % 360;
 }
 
 function syncVSFromSim() {
@@ -233,11 +239,10 @@ function updateAutopilotDisplay(ap) {
     const vsBtn = document.getElementById('apVsBtn');
     if (vsBtn) vsBtn.classList.toggle('on', vMode === 'vs');
 
-    // Update HDG input/slider only if not focused
-    if (document.activeElement !== document.getElementById('hdgSlider') &&
-        document.activeElement !== document.getElementById('hdgInput')) {
-        document.getElementById('hdgSlider').value = Math.round(ap.selectedHeading || 0);
-        document.getElementById('hdgInput').value = Math.round(ap.selectedHeading || 0);
+    // Update HDG input only if not focused
+    if (document.activeElement !== document.getElementById('hdgInput')) {
+        selectedHeading = wrapHeading(ap.selectedHeading ?? 0);
+        document.getElementById('hdgInput').value = selectedHeading;
     }
 
     // Sync VS/Altitude from server state only if not focused
@@ -470,6 +475,7 @@ updateCollectiveBar(5000);
 updateAutopilotDisplay({});
 updateSimulatorDisplay({}, {});
 updateAPToggleButton(false);
+updateHeadingDisplay();
 updateVSDisplay();
 updateAltitudeDisplay();
 
@@ -490,6 +496,11 @@ document.getElementById('apHdgBtn').addEventListener('click', toggleHDG);
 document.getElementById('apVsBtn').addEventListener('click', toggleVS);
 document.getElementById('apAltsBtn').addEventListener('click', toggleALTS);
 document.getElementById('hdgInput').addEventListener('click', syncHeadingFromSim);
+document.getElementById('hdgInput').addEventListener('change', (e) => {
+    selectedHeading = wrapHeading(parseInt(e.target.value) || 0);
+    document.getElementById('hdgInput').value = selectedHeading;
+    updateHeadingOnServer();
+});
 document.getElementById('vsInput').addEventListener('click', syncVSFromSim);
 document.getElementById('altInput').addEventListener('click', syncAltitudeFromSim);
 
@@ -536,37 +547,52 @@ function toggleVS() {
         .catch(err => console.error('VS toggle failed:', err));
 }
 
-// VS adjustment buttons - update local state and send to server
+// VS adjustment buttons - round to nearest 100 on first push (e.g. 67 -> 100, then 200, 300...)
 document.getElementById('vsMinus100').addEventListener('click', () => {
-    selectedVS -= 100;
+    selectedVS = Math.floor((selectedVS - 1) / 100) * 100;
     updateVSDisplay();
     updateVSOnServer();
 });
 document.getElementById('vsPlus100').addEventListener('click', () => {
-    selectedVS += 100;
+    selectedVS = Math.ceil((selectedVS + 1) / 100) * 100;
     updateVSDisplay();
     updateVSOnServer();
 });
 
-// Altitude adjustment buttons
-document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude -= 1000; updateAltitudeDisplay(); updateAltitudeOnServer(); });
-document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude -= 100; updateAltitudeDisplay(); updateAltitudeOnServer(); });
-document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude += 100; updateAltitudeDisplay(); updateAltitudeOnServer(); });
-document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude += 1000; updateAltitudeDisplay(); updateAltitudeOnServer(); });
-
-// Heading adjustment
-const hdgSlider = document.getElementById('hdgSlider');
-const hdgInput = document.getElementById('hdgInput');
-
-hdgSlider.addEventListener('input', (e) => {
-    hdgInput.value = e.target.value;
-    updateHeading(e.target.value);
+// Altitude adjustment - always round to 100 (e.g. 2300 +1000 -> 3300)
+document.getElementById('altMinus1000').addEventListener('click', () => {
+    selectedAltitude = Math.round(selectedAltitude / 100) * 100 - 1000;
+    updateAltitudeDisplay();
+    updateAltitudeOnServer();
+});
+document.getElementById('altMinus100').addEventListener('click', () => {
+    selectedAltitude = Math.floor((selectedAltitude - 1) / 100) * 100;
+    updateAltitudeDisplay();
+    updateAltitudeOnServer();
+});
+document.getElementById('altPlus100').addEventListener('click', () => {
+    selectedAltitude = Math.ceil((selectedAltitude + 1) / 100) * 100;
+    updateAltitudeDisplay();
+    updateAltitudeOnServer();
+});
+document.getElementById('altPlus1000').addEventListener('click', () => {
+    selectedAltitude = Math.round(selectedAltitude / 100) * 100 + 1000;
+    updateAltitudeDisplay();
+    updateAltitudeOnServer();
 });
 
-hdgInput.addEventListener('change', (e) => {
-    hdgSlider.value = e.target.value;
-    updateHeading(e.target.value);
-});
+// Heading adjustment: 90/10 round to nearest 10, 1 steps by 1. Overflow 0-359.
+function roundHeadingTo10(h) { return Math.round(h / 10) * 10; }
+document.getElementById('hdgMinus90').addEventListener('click', () => { selectedHeading = wrapHeading(roundHeadingTo10(selectedHeading) - 90); updateHeadingDisplay(); updateHeadingOnServer(); });
+document.getElementById('hdgMinus10').addEventListener('click', () => { selectedHeading = wrapHeading(roundHeadingTo10(selectedHeading) - 10); updateHeadingDisplay(); updateHeadingOnServer(); });
+document.getElementById('hdgMinus1').addEventListener('click', () => { selectedHeading = wrapHeading(selectedHeading - 1); updateHeadingDisplay(); updateHeadingOnServer(); });
+document.getElementById('hdgPlus1').addEventListener('click', () => { selectedHeading = wrapHeading(selectedHeading + 1); updateHeadingDisplay(); updateHeadingOnServer(); });
+document.getElementById('hdgPlus10').addEventListener('click', () => { selectedHeading = wrapHeading(roundHeadingTo10(selectedHeading) + 10); updateHeadingDisplay(); updateHeadingOnServer(); });
+document.getElementById('hdgPlus90').addEventListener('click', () => { selectedHeading = wrapHeading(roundHeadingTo10(selectedHeading) + 90); updateHeadingDisplay(); updateHeadingOnServer(); });
+
+function updateHeadingDisplay() {
+    document.getElementById('hdgInput').value = selectedHeading;
+}
 
 // Cyclic feedback checkbox
 document.getElementById('cyclicFeedbackCheckbox').addEventListener('change', function () {

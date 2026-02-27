@@ -122,7 +122,7 @@ struct AppState {
     SensorState sensors;
     JoystickState joystick;
     bool telemetryEnabled = false;
-    bool cyclicFeedbackEnabled = false;  // When true + AP on + cyclic held: steppers chase joystick position
+    bool cyclicFeedbackEnabled = true;   // When true + AP on + cyclic held: steppers chase joystick position
 };
 
 // Global state instance (defined in state.cpp)

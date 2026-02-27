@@ -11,6 +11,8 @@ ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
 - **Cyclic Axes via External Sensor Board** - Receives position data from AS5600 magnetic encoders via UART
 - **Collective Axis via AS5600 I2C Sensor** - Direct magnetic encoder reading with 20Hz update rate
 - **Stepper Motor Hold System** - Lock axes in position with button-controlled stepper motors
+- **Autopilot** - Roll hold, pitch hold, heading hold, vertical speed, altitude hold. See [AUTOPILOT.md](AUTOPILOT.md) for details.
+- **Cyclic Feedback** - When autopilot is on and cyclic motors held, steppers move the physical stick to follow joystick output
 - **Acoustic Feedback** - Active buzzer for mode changes and notifications
 - **RGB LED Status Indicator** - WS2812 RGB LED with rainbow mode
 - **Optional WiFi Connectivity** - Connect to WiFi for web interface and OTA updates
@@ -299,8 +301,8 @@ Three stepper motors can lock the joystick axes in their current positions, prov
 
 Each axis has a stepper motor with standard driver interface:
 - **Collective**: DIR (GPIO 4), STEP (GPIO 5), ENABLE (GPIO 16)
-- **Cyclic X**: DIR (GPIO 42), STEP (GPIO 2), ENABLE (GPIO 1)
-- **Cyclic Y**: DIR (GPIO 38), STEP (GPIO 39), ENABLE (GPIO 41)
+- **Cyclic X**: DIR (GPIO 38), STEP (GPIO 39), ENABLE (GPIO 41)
+- **Cyclic Y**: DIR (GPIO 42), STEP (GPIO 2), ENABLE (GPIO 1)
 
 **Note**: Enable pins are **active LOW** (LOW = motor engaged, HIGH = motor free)
 
@@ -386,6 +388,10 @@ esp32-heli-joystick/
 │   ├── joystick.h            # USB HID joystick interface
 │   ├── status_led.h          # RGB LED status indicator interface
 │   ├── steppers.h            # Stepper motor control interface
+│   ├── cyclic_feedback.h     # Cyclic feedback (steppers chase joystick)
+│   ├── simulator_serial.h    # Simulator data receiver (UDP/JSON)
+│   ├── state.h               # Application state
+│   ├── ap.h                  # Autopilot interface
 │   └── web_server.h          # Web server interface
 ├── src/
 │   ├── main.cpp              # Main application code
@@ -396,6 +402,10 @@ esp32-heli-joystick/
 │   ├── joystick.cpp          # USB HID joystick implementation
 │   ├── status_led.cpp        # RGB LED status indicator with rainbow mode
 │   ├── steppers.cpp          # Stepper motor hold control
+│   ├── cyclic_feedback.cpp   # Cyclic feedback logic
+│   ├── simulator_serial.cpp  # Simulator data receiver
+│   ├── state.cpp             # Global state
+│   ├── ap.cpp                # Autopilot logic
 │   └── web_server.cpp        # Web server and WiFi implementation
 ├── data/                     # Web UI static files (uploaded to LittleFS)
 │   ├── index.html            # Main dashboard page
@@ -412,6 +422,7 @@ esp32-heli-joystick/
 - **schnoog/Joystick_ESP32S2** @ ^0.9.4 - USB HID joystick support for ESP32-S3
 - **links2004/WebSockets** @ ^2.4.1 - WebSocket server for real-time dashboard
 - **bblanchon/ArduinoJson** @ ^6.21.3 - JSON serialization for WebSocket data
+- **br3ttb/PID** @ ^1.2.1 - PID controller for autopilot
 - **WiFi** (built-in) - WiFi connectivity
 - **WebServer** (built-in) - HTTP web server
 - **ESPmDNS** (built-in) - mDNS responder
