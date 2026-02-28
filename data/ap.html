@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .ap-card {
+            width: 100%;
+            max-width: 600px;
+            margin: 0;
+        }
+
+        .card-title {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card ap-card">
+        <div class="ap-layout">
+            <div class="ap-pfd">
+                <div class="ap-lateral" id="apLateral">
+                    <div class="active" id="apLateralActive">--</div>
+                    <div class="armed" id="apLateralArmed"></div>
+                </div>
+                <div class="ap-center" id="apCenter">--</div>
+                <div class="ap-vertical" id="apVertical">
+                    <div class="active" id="apVerticalActive">--</div>
+                    <div class="armed" id="apVerticalArmed"></div>
+                </div>
+            </div>
+            <div class="ap-controls">
+                <div class="ap-toggle-dpad-col">
+                    <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
+                </div>
+                <div class="ap-mode-buttons-col">
+                    <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
+                    <div class="ap-vert-modes">
+                        <button class="ap-btn ap-mode-btn" id="apVsBtn">VS</button>
+                        <button class="ap-btn ap-mode-btn" id="apAltsBtn">ALTS</button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End ap-layout -->
+        <div class="ap-extra-controls" style="gap: 6px;">
+            <div class="ap-input-group"
+                style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <label style="margin-bottom: 0; min-width: 75px;">Roll/Pitch</label>
+                <div class="ap-value-row" style="flex: 1; justify-content: center; gap: 8px;">
+                    <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
+                    <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                    <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                    <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
+                </div>
+            </div>
+            <div class="ap-input-group"
+                style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <label style="margin-bottom: 0; min-width: 75px;">HDG</label>
+                <div class="ap-value-row" style="flex: 1;">
+                    <div class="ap-value-row-left">
+                        <button class="ap-btn ap-adj-btn" id="hdgMinus90">-90</button>
+                        <button class="ap-btn ap-adj-btn" id="hdgMinus10">-10</button>
+                        <button class="ap-btn ap-adj-btn" id="hdgMinus1">-1</button>
+                    </div>
+                    <input type="number" id="hdgInput" min="0" max="359" value="0" readonly
+                        title="Click to sync from current sim heading">
+                    <div class="ap-value-row-right">
+                        <button class="ap-btn ap-adj-btn" id="hdgPlus1">+1</button>
+                        <button class="ap-btn ap-adj-btn" id="hdgPlus10">+10</button>
+                        <button class="ap-btn ap-adj-btn" id="hdgPlus90">+90</button>
+                        <span class="unit" style="min-width: 15px;">°</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ap-input-group"
+                style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <label style="margin-bottom: 0; min-width: 75px;">VS</label>
+                <div class="ap-value-row" style="flex: 1;">
+                    <div class="ap-value-row-left">
+                        <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
+                    </div>
+                    <input type="number" id="vsInput" title="Click to sync from current sim VS" step="1">
+                    <div class="ap-value-row-right">
+                        <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
+                        <span class="unit" style="min-width: 15px;">fpm</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ap-input-group"
+                style="flex-direction: row; align-items: center; justify-content: space-between;">
+                <label style="margin-bottom: 0; min-width: 75px;">ALT</label>
+                <div class="ap-value-row" style="flex: 1;">
+                    <div class="ap-value-row-left">
+                        <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
+                        <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
+                    </div>
+                    <input type="number" id="altInput" title="Click to sync from current sim altitude" step="1">
+                    <div class="ap-value-row-right">
+                        <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
+                        <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>
+                        <span class="unit" style="min-width: 15px;">ft</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let ws;
+        let lastSimData = {};
+        let selectedHeading = 0;
+        let selectedVS = 0;
+        let selectedAltitude = 0;
+
+        function updateAutopilotDisplay(ap) {
+            const enabled = ap.enabled ?? false;
+            const hMode = ap.horizontalMode ?? 'off';
+            const vMode = ap.verticalMode ?? 'off';
+
+            const btn = document.getElementById('apToggleBtn');
+            btn.textContent = enabled ? 'AP ON' : 'AP OFF';
+            btn.classList.toggle('on', enabled);
+
+            document.getElementById('apHdgBtn').classList.toggle('on', hMode === 'hdg');
+            document.getElementById('apVsBtn').classList.toggle('on', vMode === 'vs');
+
+            if (document.activeElement !== document.getElementById('hdgInput')) {
+                selectedHeading = (((ap.selectedHeading ?? 0) % 360) + 360) % 360;
+                document.getElementById('hdgInput').value = Math.round(selectedHeading);
+            }
+            if (ap.selectedVerticalSpeed !== undefined && document.activeElement !== document.getElementById('vsInput')) {
+                selectedVS = Math.round(ap.selectedVerticalSpeed);
+                document.getElementById('vsInput').value = selectedVS;
+            }
+            if (ap.selectedAltitude !== undefined && document.activeElement !== document.getElementById('altInput')) {
+                selectedAltitude = Math.round(ap.selectedAltitude);
+                document.getElementById('altInput').value = selectedAltitude;
+            }
+
+            const centerEl = document.getElementById('apCenter');
+            centerEl.textContent = enabled ? 'AP' : '--';
+            centerEl.classList.toggle('inactive', !enabled);
+
+            document.getElementById('apVertical').dataset.value = ap.selectedPitch || 0;
+            document.getElementById('apLateral').dataset.value = ap.selectedRoll || 0;
+
+            let latActiveText = '--';
+            if (enabled) {
+                if (hMode === 'roll') latActiveText = 'ROLL ' + Math.round(ap.selectedRoll) + '°';
+                else if (hMode === 'hdg') latActiveText = 'HDG ' + Math.round(ap.selectedHeading ?? 0);
+            }
+            const latActiveEl = document.getElementById('apLateralActive');
+            latActiveEl.textContent = latActiveText;
+            latActiveEl.classList.toggle('inactive', !enabled || hMode === 'off');
+
+            let vertActiveText = '--';
+            let vertArmedText = '';
+            if (enabled) {
+                if (vMode === 'pitch') vertActiveText = 'PITCH ' + Math.round(ap.selectedPitch) + '°';
+                else if (vMode === 'vs') vertActiveText = 'VS ' + Math.round(ap.selectedVerticalSpeed || 0);
+                else if (vMode === 'alts') {
+                    const activeAlt = ap.capturedAltitude !== undefined && ap.capturedAltitude !== 0 ? ap.capturedAltitude : ap.selectedAltitude;
+                    vertActiveText = 'ALTS ' + Math.round(activeAlt || 0);
+                }
+                if (ap.altHoldArmed && vMode !== 'alts') {
+                    vertArmedText = 'ALTS ' + Math.round(ap.selectedAltitude || 0);
+                }
+            }
+            const vertActiveEl = document.getElementById('apVerticalActive');
+            const vertArmedEl = document.getElementById('apVerticalArmed');
+            vertActiveEl.textContent = vertActiveText;
+            vertArmedEl.textContent = vertArmedText;
+            vertActiveEl.classList.toggle('inactive', !enabled || vMode === 'off');
+
+            const altsBtn = document.getElementById('apAltsBtn');
+            altsBtn.classList.toggle('on', vMode === 'alts' || ap.altHoldArmed);
+            altsBtn.style.boxShadow = (ap.altHoldArmed && vMode !== 'alts') ? '0 0 10px #fff' : '';
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://' + window.location.hostname + ':81/?rate=1000');
+            ws.onclose = () => setTimeout(connect, 2000);
+            ws.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.simulator) lastSimData = data.simulator;
+                    if (data.autopilot) updateAutopilotDisplay(data.autopilot);
+                } catch (e) { }
+            };
+        }
+
+        function postAP(body) {
+            fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(r => r.json()).then(d => updateAutopilotDisplay(d.autopilot || {}));
+        }
+
+        document.getElementById('apToggleBtn').addEventListener('click', () => {
+            postAP({ enabled: !document.getElementById('apToggleBtn').classList.contains('on') });
+        });
+        document.getElementById('apHdgBtn').addEventListener('click', () => {
+            postAP({ horizontalMode: document.getElementById('apHdgBtn').classList.contains('on') ? 'roll' : 'hdg' });
+        });
+        document.getElementById('apVsBtn').addEventListener('click', () => {
+            postAP({ verticalMode: document.getElementById('apVsBtn').classList.contains('on') ? 'pitch' : 'vs' });
+        });
+        document.getElementById('apAltsBtn').addEventListener('click', () => {
+            fetch('/api/autopilot/alt_arm', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'armed=' + (document.getElementById('apAltsBtn').classList.contains('on') ? 'false' : 'true')
+            });
+        });
+
+        function adjustAPTarget(axis, delta) {
+            const targets = {
+                pitch: parseFloat(document.getElementById('apVertical').dataset.value || 0),
+                roll: parseFloat(document.getElementById('apLateral').dataset.value || 0)
+            };
+            if (axis === 'pitch') targets.pitch += delta;
+            if (axis === 'roll') targets.roll += delta;
+            postAP({ selectedPitch: targets.pitch, selectedRoll: targets.roll });
+        }
+        document.getElementById('apPitchUpBtn').addEventListener('click', () => adjustAPTarget('pitch', -1));
+        document.getElementById('apPitchDownBtn').addEventListener('click', () => adjustAPTarget('pitch', 1));
+        document.getElementById('apRollLeftBtn').addEventListener('click', () => adjustAPTarget('roll', 1));
+        document.getElementById('apRollRightBtn').addEventListener('click', () => adjustAPTarget('roll', -1));
+
+        document.getElementById('hdgInput').addEventListener('click', () => {
+            if (lastSimData.heading != null) {
+                selectedHeading = (((Math.round(lastSimData.heading) % 360) + 360) % 360);
+                document.getElementById('hdgInput').value = selectedHeading;
+                postAP({ selectedHeading });
+            }
+        });
+        document.getElementById('vsInput').addEventListener('click', () => {
+            if (lastSimData.verticalSpeed != null) {
+                selectedVS = Math.round(lastSimData.verticalSpeed);
+                document.getElementById('vsInput').value = selectedVS;
+                postAP({ selectedVerticalSpeed: selectedVS });
+            }
+        });
+        document.getElementById('altInput').addEventListener('click', () => {
+            if (lastSimData.altitude != null) {
+                selectedAltitude = Math.round(lastSimData.altitude);
+                document.getElementById('altInput').value = selectedAltitude;
+                postAP({ selectedAltitude });
+            }
+        });
+
+        document.getElementById('hdgInput').addEventListener('change', e => { selectedHeading = parseInt(e.target.value) || 0; postAP({ selectedHeading }); });
+        document.getElementById('vsInput').addEventListener('change', e => { selectedVS = parseInt(e.target.value) || 0; postAP({ selectedVerticalSpeed: selectedVS }); });
+        document.getElementById('altInput').addEventListener('change', e => { selectedAltitude = parseInt(e.target.value) || 0; postAP({ selectedAltitude }); });
+
+        const wrap = h => (((Math.round(h) % 360) + 360) % 360);
+        document.getElementById('hdgMinus90').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 - 90); postAP({ selectedHeading }); });
+        document.getElementById('hdgMinus10').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 - 10); postAP({ selectedHeading }); });
+        document.getElementById('hdgMinus1').addEventListener('click', () => { selectedHeading = wrap(selectedHeading - 1); postAP({ selectedHeading }); });
+        document.getElementById('hdgPlus1').addEventListener('click', () => { selectedHeading = wrap(selectedHeading + 1); postAP({ selectedHeading }); });
+        document.getElementById('hdgPlus10').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 + 10); postAP({ selectedHeading }); });
+        document.getElementById('hdgPlus90').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 + 90); postAP({ selectedHeading }); });
+
+        document.getElementById('vsMinus100').addEventListener('click', () => { selectedVS = Math.floor((selectedVS - 1) / 100) * 100; postAP({ selectedVerticalSpeed: selectedVS }); });
+        document.getElementById('vsPlus100').addEventListener('click', () => { selectedVS = Math.ceil((selectedVS + 1) / 100) * 100; postAP({ selectedVerticalSpeed: selectedVS }); });
+
+        document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude = Math.round(selectedAltitude / 100) * 100 - 1000; postAP({ selectedAltitude }); });
+        document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude = Math.floor((selectedAltitude - 1) / 100) * 100; postAP({ selectedAltitude }); });
+        document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude = Math.ceil((selectedAltitude + 1) / 100) * 100; postAP({ selectedAltitude }); });
+        document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude = Math.round(selectedAltitude / 100) * 100 + 1000; postAP({ selectedAltitude }); });
+
+        connect();
+    </script>
+</body>
+
+</html>

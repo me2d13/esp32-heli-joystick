@@ -51,11 +51,16 @@ WebSocketsServer webSocket(81);
 // WiFi connection status
 bool wifiConnected = false;
 
-// WebSocket update interval
+// WebSocket update interval default
 #define WEBSOCKET_UPDATE_MS 50  // 20 Hz update rate
 
-// Last WebSocket update time
-unsigned long lastWebSocketUpdate = 0;
+#define MAX_WS_CLIENTS 8
+struct WsClientState {
+    bool active = false;
+    unsigned long updateIntervalMs = WEBSOCKET_UPDATE_MS;
+    unsigned long lastUpdateMs = 0;
+};
+WsClientState wsClients[MAX_WS_CLIENTS];
 
 // Get MIME type from file extension
 static const char* getContentType(const char* path) {
@@ -116,18 +121,42 @@ static void handleNotFound() {
 
 // WebSocket event handler
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+    if (num >= MAX_WS_CLIENTS) return;
+
     switch(type) {
         case WStype_DISCONNECTED:
             LOG_DEBUGF("[WS] Client #%u disconnected", num);
+            wsClients[num].active = false;
             break;
         case WStype_CONNECTED:
             {
                 IPAddress ip = webSocket.remoteIP(num);
                 LOG_DEBUGF("[WS] Client #%u connected from %s", num, ip.toString().c_str());
+                wsClients[num].active = true;
+                wsClients[num].updateIntervalMs = WEBSOCKET_UPDATE_MS;
+                wsClients[num].lastUpdateMs = millis();
+                
+                String uri = (char*)payload;
+                int rateIdx = uri.indexOf("rate=");
+                if (rateIdx != -1) {
+                    int rate = uri.substring(rateIdx + 5).toInt();
+                    if (rate >= 10) {
+                        wsClients[num].updateIntervalMs = rate;
+                    }
+                    LOG_DEBUGF("[WS] Client #%u requested rate %u ms", num, wsClients[num].updateIntervalMs);
+                }
             }
             break;
         case WStype_TEXT:
-            // Handle incoming text messages if needed
+            {
+                // Optional: handle updates via JSON text message too
+                StaticJsonDocument<128> doc;
+                DeserializationError err = deserializeJson(doc, payload);
+                if (!err && doc.containsKey("setUpdateInterval")) {
+                    wsClients[num].updateIntervalMs = doc["setUpdateInterval"].as<unsigned long>();
+                    LOG_DEBUGF("[WS] Client #%u set interval to %u ms", num, wsClients[num].updateIntervalMs);
+                }
+            }
             break;
         default:
             break;
@@ -222,14 +251,31 @@ static void buildStateJson(JsonDocument& doc) {
     debug["stepsY"] = state.debugMotorYSteps;
 }
 
-// Send complete state to all connected WebSocket clients
-void broadcastJoystickState() {
-    StaticJsonDocument<1024> doc;
-    buildStateJson(doc);
-
-    String json;
-    serializeJson(doc, json);
-    webSocket.broadcastTXT(json);
+// Send complete state only to clients that are due for an update
+void updateWebSocketClients() {
+    unsigned long now = millis();
+    bool needBuild = false;
+    
+    for (int i = 0; i < MAX_WS_CLIENTS; i++) {
+        if (wsClients[i].active && (now - wsClients[i].lastUpdateMs >= wsClients[i].updateIntervalMs)) {
+            needBuild = true;
+            break;
+        }
+    }
+    
+    if (needBuild) {
+        StaticJsonDocument<1024> doc;
+        buildStateJson(doc);
+        String json;
+        serializeJson(doc, json);
+        
+        for (int i = 0; i < MAX_WS_CLIENTS; i++) {
+            if (wsClients[i].active && (now - wsClients[i].lastUpdateMs >= wsClients[i].updateIntervalMs)) {
+                wsClients[i].lastUpdateMs = now;
+                webSocket.sendTXT(i, json);
+            }
+        }
+    }
 }
 
 void initWebServer() {
@@ -320,6 +366,11 @@ void initWebServer() {
             server.on("/debug", []() {
                 if (!serveStaticFile("/debug.html")) {
                     server.send(500, "text/plain", "Failed to load debug.html. Upload filesystem with: pio run -t uploadfs");
+                }
+            });
+            server.on("/ap", []() {
+                if (!serveStaticFile("/ap.html")) {
+                    server.send(500, "text/plain", "Failed to load ap.html. Upload filesystem with: pio run -t uploadfs");
                 }
             });
             server.on("/api/debug", []() {
@@ -600,12 +651,8 @@ void handleWebServer() {
         server.handleClient();
         webSocket.loop();
         
-        // Broadcast joystick state periodically
-        unsigned long now = millis();
-        if (now - lastWebSocketUpdate >= WEBSOCKET_UPDATE_MS) {
-            lastWebSocketUpdate = now;
-            broadcastJoystickState();
-        }
+        // Broadcast joystick state to ready clients
+        updateWebSocketClients();
     }
 }
 
