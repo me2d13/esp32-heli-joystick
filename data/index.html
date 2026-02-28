@@ -68,20 +68,6 @@
                     <div class="ap-controls">
                         <div class="ap-toggle-dpad-col">
                             <button class="ap-btn ap-toggle" id="apToggleBtn">AP OFF</button>
-                            <div class="ap-dpad">
-                                <div class="dpad-row">
-                                    <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
-                                </div>
-                                <div class="dpad-row">
-                                    <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
-                                    <button class="ap-btn dpad-btn" id="apRollRightBtn"
-                                        title="Roll Right +1°">▶</button>
-                                </div>
-                                <div class="dpad-row">
-                                    <button class="ap-btn dpad-btn" id="apPitchDownBtn"
-                                        title="Pitch Down +1°">▼</button>
-                                </div>
-                            </div>
                         </div>
                         <div class="ap-mode-buttons-col">
                             <button class="ap-btn ap-mode-btn" id="apHdgBtn">HDG</button>
@@ -92,10 +78,21 @@
                         </div>
                     </div>
                 </div> <!-- End ap-layout -->
-                <div class="ap-extra-controls">
-                    <div class="ap-input-group">
-                        <label>Selected Heading</label>
-                        <div class="ap-value-row">
+                <div class="ap-extra-controls" style="gap: 6px;">
+                    <div class="ap-input-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <label style="margin-bottom: 0; min-width: 75px;">Roll/Pitch</label>
+                        <div class="ap-value-row" style="flex: 1; justify-content: center; gap: 8px;">
+                            <button class="ap-btn dpad-btn" id="apRollLeftBtn" title="Roll Left +1°">◀</button>
+                            <button class="ap-btn dpad-btn" id="apPitchUpBtn" title="Pitch Up +1°">▲</button>
+                            <button class="ap-btn dpad-btn" id="apPitchDownBtn" title="Pitch Down +1°">▼</button>
+                            <button class="ap-btn dpad-btn" id="apRollRightBtn" title="Roll Right +1°">▶</button>
+                        </div>
+                    </div>
+                    <div class="ap-input-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <label style="margin-bottom: 0; min-width: 75px;">HDG</label>
+                        <div class="ap-value-row" style="flex: 1;">
                             <div class="ap-value-row-left">
                                 <button class="ap-btn ap-adj-btn" id="hdgMinus90">-90</button>
                                 <button class="ap-btn ap-adj-btn" id="hdgMinus10">-10</button>
@@ -107,26 +104,28 @@
                                 <button class="ap-btn ap-adj-btn" id="hdgPlus1">+1</button>
                                 <button class="ap-btn ap-adj-btn" id="hdgPlus10">+10</button>
                                 <button class="ap-btn ap-adj-btn" id="hdgPlus90">+90</button>
-                                <span class="unit">°</span>
+                                <span class="unit" style="min-width: 15px;">°</span>
                             </div>
                         </div>
                     </div>
-                    <div class="ap-input-group">
-                        <label>Selected VS</label>
-                        <div class="ap-value-row">
+                    <div class="ap-input-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <label style="margin-bottom: 0; min-width: 75px;">VS</label>
+                        <div class="ap-value-row" style="flex: 1;">
                             <div class="ap-value-row-left">
                                 <button class="ap-btn ap-adj-btn" id="vsMinus100">-100</button>
                             </div>
                             <input type="number" id="vsInput" title="Click to sync from current sim VS" step="1">
                             <div class="ap-value-row-right">
                                 <button class="ap-btn ap-adj-btn" id="vsPlus100">+100</button>
-                                <span class="unit">fpm</span>
+                                <span class="unit" style="min-width: 15px;">fpm</span>
                             </div>
                         </div>
                     </div>
-                    <div class="ap-input-group">
-                        <label>Selected Altitude</label>
-                        <div class="ap-value-row">
+                    <div class="ap-input-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <label style="margin-bottom: 0; min-width: 75px;">ALT</label>
+                        <div class="ap-value-row" style="flex: 1;">
                             <div class="ap-value-row-left">
                                 <button class="ap-btn ap-adj-btn" id="altMinus1000">-1000</button>
                                 <button class="ap-btn ap-adj-btn" id="altMinus100">-100</button>
@@ -135,7 +134,7 @@
                             <div class="ap-value-row-right">
                                 <button class="ap-btn ap-adj-btn" id="altPlus100">+100</button>
                                 <button class="ap-btn ap-adj-btn" id="altPlus1000">+1000</button>
-                                <span class="unit">ft</span>
+                                <span class="unit" style="min-width: 15px;">ft</span>
                             </div>
                         </div>
                     </div>
@@ -209,7 +208,8 @@
                 <div class="card-title">⚙️ Autopilot Parameters</div>
                 <div class="ap-cyclic-feedback pid-section-checkbox">
                     <label class="ap-checkbox-label">
-                        <input type="checkbox" id="cyclicFeedbackCheckbox" title="When AP on + cyclic held: steppers move stick to follow joystick output">
+                        <input type="checkbox" id="cyclicFeedbackCheckbox"
+                            title="When AP on + cyclic held: steppers move stick to follow joystick output">
                         <span>Cyclic feedback</span>
                     </label>
                 </div>
