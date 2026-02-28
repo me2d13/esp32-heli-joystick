@@ -2,6 +2,7 @@
 #include "config.h"
 #include "logger.h"
 #include "buzzer.h"
+#include "state.h"
 
 // Motor hold states
 static bool collectiveHeld = false;
@@ -84,6 +85,41 @@ void toggleCyclicHold() {
 
 void handleSteppers() {
     unsigned long currentTime = millis();
+    
+    if (state.motorDebugActive) {
+        static unsigned long lastDebugStepXMs = 0;
+        static unsigned long lastDebugStepYMs = 0;
+
+        digitalWrite(PIN_CYCLIC_X_ENABLED, LOW);
+        digitalWrite(PIN_CYCLIC_Y_ENABLED, LOW);
+
+        if (state.debugMotorXSteps != 0 && (currentTime - lastDebugStepXMs) >= CYCLIC_FEEDBACK_STEP_MS) {
+            bool dirX = (state.debugMotorXSteps > 0) ? (bool)CYCLIC_FEEDBACK_X_DIR_POS : !(bool)CYCLIC_FEEDBACK_X_DIR_POS;
+            stepCyclicX(dirX);
+            if (state.debugMotorXSteps > 0) state.debugMotorXSteps--;
+            else state.debugMotorXSteps++;
+            lastDebugStepXMs = currentTime;
+        }
+
+        if (state.debugMotorYSteps != 0 && (currentTime - lastDebugStepYMs) >= CYCLIC_FEEDBACK_STEP_MS) {
+            bool dirY = (state.debugMotorYSteps > 0) ? (bool)CYCLIC_FEEDBACK_Y_DIR_POS : !(bool)CYCLIC_FEEDBACK_Y_DIR_POS;
+            stepCyclicY(dirY);
+            if (state.debugMotorYSteps > 0) state.debugMotorYSteps--;
+            else state.debugMotorYSteps++;
+            lastDebugStepYMs = currentTime;
+        }
+
+        return; // skip normal processing
+    }
+
+    // Ensure state is correct when transitioning from debug
+    if (cyclicHeld) {
+        digitalWrite(PIN_CYCLIC_X_ENABLED, LOW);
+        digitalWrite(PIN_CYCLIC_Y_ENABLED, LOW);
+    } else {
+        digitalWrite(PIN_CYCLIC_X_ENABLED, HIGH);
+        digitalWrite(PIN_CYCLIC_Y_ENABLED, HIGH);
+    }
     
     // Handle collective FTR button with debouncing
     bool collectiveFTRReading = digitalRead(PIN_COL_FTR);

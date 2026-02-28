@@ -215,6 +215,11 @@ static void buildStateJson(JsonDocument& doc) {
         );
         doc["telemetry"] = buf;
     }
+
+    JsonObject debug = doc.createNestedObject("motorDebug");
+    debug["active"] = state.motorDebugActive;
+    debug["stepsX"] = state.debugMotorXSteps;
+    debug["stepsY"] = state.debugMotorYSteps;
 }
 
 // Send complete state to all connected WebSocket clients
@@ -499,6 +504,37 @@ void initWebServer() {
                     LOG_INFOF("Cyclic feedback: %s", state.cyclicFeedbackEnabled ? "ON" : "OFF");
                 }
                 server.send(200, "application/json", state.cyclicFeedbackEnabled ? "{\"enabled\":true}" : "{\"enabled\":false}");
+            });
+            server.on("/api/motor_debug", HTTP_POST, []() {
+                if (!server.hasArg("plain")) {
+                    server.send(400, "application/json", "{\"error\":\"JSON body required\"}");
+                    return;
+                }
+                String body = server.arg("plain");
+                StaticJsonDocument<128> doc;
+                deserializeJson(doc, body);
+                if (doc.containsKey("active")) {
+                    state.motorDebugActive = doc["active"].as<bool>();
+                    if (state.motorDebugActive) {
+                        state.cyclicFeedbackEnabled = false; // Disable to not interfere
+                        state.debugMotorXSteps = 0;
+                        state.debugMotorYSteps = 0;
+                        LOG_INFO("Motor Debug Active: Cyclic FFB disabled.");
+                    } else {
+                        LOG_INFO("Motor Debug Inactive.");
+                    }
+                }
+                if (doc.containsKey("stepsX")) {
+                    int steps = doc["stepsX"].as<int>();
+                    state.debugMotorXSteps = steps * CYCLIC_MICROSTEPPING;
+                    LOG_INFOF("Motor Debug: Move X %d steps (%d microsteps)", steps, state.debugMotorXSteps);
+                }
+                if (doc.containsKey("stepsY")) {
+                    int steps = doc["stepsY"].as<int>();
+                    state.debugMotorYSteps = steps * CYCLIC_MICROSTEPPING;
+                    LOG_INFOF("Motor Debug: Move Y %d steps (%d microsteps)", steps, state.debugMotorYSteps);
+                }
+                server.send(200, "application/json", "{\"status\":\"ok\"}");
             });
             server.on("/api/telemetry", HTTP_POST, []() {
                 if (!server.hasArg("plain")) {

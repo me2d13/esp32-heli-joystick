@@ -67,8 +67,34 @@
             </div>
 
             <div class="card">
+                <div class="card-title">⚙️ Motor Debug</div>
+                <div class="status-row">
+                    <span class="status-label">Debug Mode</span>
+                    <button id="btnMotorDebug" onclick="toggleMotorDebug()"
+                        style="padding: 4px 8px; border-radius: 4px; border: 1px solid #45475a; background: #313244; color: #cdd6f4; cursor: pointer;">Enable</button>
+                </div>
+                <div id="motorControls" style="display: none; margin-top: 15px;">
+                    <p style="font-size: 0.8em; color: #8892b0; margin-bottom: 8px;">Steps (negative = reverse)</p>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <input type="number" id="stepsInput" value="100"
+                            style="width: 80px; padding: 4px; border-radius: 4px; border: 1px solid #45475a; background: #1e1e2e; color: #cdd6f4;">
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="moveMotor('X')"
+                            style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #89b4fa; background: #313244; color: #89b4fa; cursor: pointer;">Move
+                            X</button>
+                        <button onclick="moveMotor('Y')"
+                            style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #a6e3a1; background: #313244; color: #a6e3a1; cursor: pointer;">Move
+                            Y</button>
+                    </div>
+                    <p id="motorStatus" style="font-size: 0.8em; color: #f38ba8; margin-top: 8px;"></p>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="card-title">⏱️ Loop Task Timing (ms)</div>
-                <p style="font-size: 0.8em; color: #8892b0; margin-bottom: 12px;">Last / Max per iteration. Logged when &gt;50ms.</p>
+                <p style="font-size: 0.8em; color: #8892b0; margin-bottom: 12px;">Last / Max per iteration. Logged when
+                    &gt;50ms.</p>
                 <div id="loopTasks"></div>
             </div>
         </div>
@@ -121,6 +147,47 @@
                 .catch(err => {
                     document.getElementById('lastUpdate').textContent = 'Error: ' + err.message;
                 });
+        }
+
+        let motorDebugActive = false;
+
+        function toggleMotorDebug() {
+            motorDebugActive = !motorDebugActive;
+            const btn = document.getElementById('btnMotorDebug');
+            const controls = document.getElementById('motorControls');
+
+            btn.textContent = motorDebugActive ? 'Disable' : 'Enable';
+            btn.style.background = motorDebugActive ? '#f38ba8' : '#313244';
+            btn.style.color = motorDebugActive ? '#11111b' : '#cdd6f4';
+            controls.style.display = motorDebugActive ? 'block' : 'none';
+
+            fetch('/api/motor_debug', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: motorDebugActive })
+            }).catch(e => console.error(e));
+        }
+
+        function moveMotor(axis) {
+            if (!motorDebugActive) return;
+            const steps = parseInt(document.getElementById('stepsInput').value) || 0;
+            const payload = {};
+            if (axis === 'X') payload.stepsX = steps;
+            if (axis === 'Y') payload.stepsY = steps;
+
+            document.getElementById('motorStatus').textContent = `Moving ${axis} ${steps} steps...`;
+
+            fetch('/api/motor_debug', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                setTimeout(() => {
+                    document.getElementById('motorStatus').textContent = "";
+                }, 2000);
+            }).catch(e => {
+                document.getElementById('motorStatus').textContent = "Error: " + e.message;
+            });
         }
 
         fetchDebug();
