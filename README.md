@@ -2,6 +2,44 @@
 
 ESP32-S3 based USB HID helicopter joystick controller with WiFi and OTA support.
 
+## The story
+
+### Original design
+This is custom software project for excelent HW controls from Karl's [737diysim.com](https://www.737diysim.com/) project - [cyclic](https://www.737diysim.com/product-page/heli-cyclic-stl-cad-files) and [collective](https://www.737diysim.com/product-page/heli-collective-cad-stl). Original design is using Mobiflight for motors and enhanced logic and (optionally) some joystick interace like Arduino Leonardo HID or Leo Bodnar's BU0836A.
+
+### Dedicated board with custom software
+I decided to use ESP32 chip with cutom software so I can have all features using one board - joystick and stepper motor controller.
+
+### Going digital
+After first build I found reading from hall sensors quite noisy - maybe because of long wires or connectors on the way. So I decided to use AS5600 magnetic encoders which also use hall sensors but have A/C conversion built in and provide digital output with I2C.
+
+However instead of 2 analog signals (X-Y) for cyclic I need 2 I2C buses (4 wires). As I didn't want to change wiring between cyclic and main board I used external ESP32 board for cyclic sensors and communicate with it via UART. It has 2 advantages - I could use 2 existing wires (analog X and Y) for serial data and also I pick ESP32 board with 2 I2C buses so I don't need to use I2C multiplexer for cyclic X and Y (AS5600 has fixed I2C address). There's small ESP32-S3-Zero board which is perfect for this purpose. The firmware is quite simple - just reading from 2 AS5600 sensors and sending data via UART. Here's the repo [esp32-as5600](https://github.com/me2d13/esp32-as5600).
+
+### Autopilot
+And then there was crazy idea - I have cyclic with stepper motors providing just hold functionality. Why not use those motors to move the stick? And what is the system that controls the stick? Well, it's autopilot.
+
+So I added basic helicopter autopilot. It can hold roll, pitch, heading, vertical speed and altitude. When autopilot is engaged it basically ignores sensors (stick position) but sends calculated position to PC as joystick output. So stick can be freely moved but simulator doesn't see it.
+
+Finally there's also option to turn on the motors - then ESP32 uses closed loop control to move the stick to position reported by autopilot.
+
+Autopilot controls only cyclic - not collective. It also works only after helicopter has reached certain speed. No automatic hover mode for now - sorry :-).
+
+### Web interface
+ESP32 can also connect to wifi and provides web interface to monitor and control the joystick.
+For now the autopilot panel is controlled from web interface only. Maybe I'll add some support to control modes from physical buttons on the joystick.
+
+### Simulator connection
+ESP32 appears as standard joystick device to simulator so can be used with any simulator.
+But for autopilot to work it needs to know what's happening in the simulator. This simulator data is provided by dedicated software which sends data to ESP32 via serial connection.
+I'm using [YD-ESP32-S3](https://www.google.com/search?q=YD-ESP32-S3) with 2 USB ports - one for joystick and one for serial connection.
+
+The software I use is [msfs-web-api](https://github.com/me2d13/msfs-web-api) - tool I wrote earlier to control MSFS from web interface so I can create simulator panels as web pages. I added feature to send configured variables to serial port.
+
+And as you can see for now the AP works only with MSFS. But I plan to add X-Plane support too - just implementing similar dataref-serial bridge.
+
+## Demo
+
+
 ## Features
 
 - **USB HID Joystick** - Native USB joystick with 3 axes and 32 buttons
