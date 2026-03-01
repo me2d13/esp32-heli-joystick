@@ -179,7 +179,7 @@
 // When cyclic feedback is on: X-Y steppers move physical stick toward joystick
 // output. Direction depends on wiring; flip these if stick moves wrong way.
 #define CYCLIC_MICROSTEPPING         4     // Driver microstepping setting (e.g. 1, 2, 4, 8, 16)
-#define CYCLIC_FEEDBACK_DEADBAND     75    // Axis units (0-10000): don't move if error smaller
+#define CYCLIC_FEEDBACK_DEADBAND     30    // Axis units (0-10000): don't move if error smaller
 #define CYCLIC_FEEDBACK_STEP_MS      (40 / CYCLIC_MICROSTEPPING)    // Min ms between steps per axis (higher = slower)
 #define CYCLIC_FEEDBACK_X_ENABLED    1     // 0 = disable X for tuning, 1 = enable
 #define CYCLIC_FEEDBACK_X_DIR_POS    1     // 1 = HIGH increases sensor, 0 = LOW increases

@@ -3,7 +3,8 @@
 #include "joystick.h"
 #include "logger.h"
 #include "steppers.h"
-
+#include "ap.h"
+#include "state.h"
 // Button state tracking
 static bool cyclicButtonStates[16] = {false};
 static bool collectiveFtrButtonState = false;
@@ -68,10 +69,14 @@ void handleButtons() {
         setJoystickButton(buttonNumber - 1, buttonPressed);
         dirty = true;
         
-        // Special handling: Button 1 (addr 14, joystick button 0) also toggles cyclic motor hold
-        if (addr == 14 && buttonPressed) {
-          // Button 1 pressed - toggle cyclic motor hold
+        // Special handling: Button index 2 (buttonNumber 3) toggles cyclic motor hold
+        if (buttonNumber == 3 && buttonPressed) {
           toggleCyclicHold();
+        }
+        
+        // Special handling: Button index 1 (buttonNumber 2) toggles AP
+        if (buttonNumber == 2 && buttonPressed) {
+          setAPEnabled(!state.autopilot.enabled);
         }
         
         // Use DEBUG level to avoid flooding the log buffer (this is in loop)

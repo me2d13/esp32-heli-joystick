@@ -39,6 +39,7 @@ And as you can see for now the AP works only with MSFS. But I plan to add X-Plan
 
 ## Demo
 
+[![Autopilot Demo](https://img.youtube.com/vi/AsHH0tzKPkw/0.jpg)](https://youtu.be/AsHH0tzKPkw)
 
 ## Features
 
