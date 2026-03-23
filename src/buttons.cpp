@@ -19,6 +19,22 @@ static uint8_t cyclicButtonMappings[16] = CYCLIC_BUTTONS_MAPPING;
 static int8_t collectiveButt1Mappings[16] = {18, 13, -12, 23, 19, 21, 16, 20, 17, 22, 0, 10, 15, 14, 0, 11};
 static int8_t collectiveButt2Mappings[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0};
 
+// Built-in action mapping: index = HID button number (1-indexed), value = ButtonAction.
+// Buttons not listed here (or ACTION_NONE) only produce HID output with no side-effect.
+static ButtonAction buttonActionMappings[33] = {
+  ACTION_NONE,               //  0  (unused, buttons are 1-indexed)
+  ACTION_NONE,               //  1
+  ACTION_TOGGLE_AP,          //  2
+  ACTION_TOGGLE_CYCLIC_HOLD, //  3
+  ACTION_NONE,               //  4
+  ACTION_NONE,               //  5
+  ACTION_NONE,               //  6
+  ACTION_NONE,               //  7
+  ACTION_NONE,               //  8
+  ACTION_TOGGLE_COLLECTIVE_HOLD, //  9 (collective FTR button)
+  // 10-32: ACTION_NONE (zero-initialised)
+};
+
 void initButtons() {
   LOG_INFO("Initializing button handling...");
   
@@ -56,6 +72,29 @@ void setMultiplexerAddress(uint8_t address) {
   delayMicroseconds(10);
 }
 
+// Dispatches built-in side-effects for a button. Called after every HID button
+// event, for all button sources (cyclic, collective, FTR).
+// Only acts on press unless the action also needs release (none do, currently).
+static void performButtonAction(uint8_t buttonNumber, bool pressed) {
+  if (buttonNumber == 0 || buttonNumber > 32) return;
+  ButtonAction action = buttonActionMappings[buttonNumber];
+  if (action == ACTION_NONE) return;
+
+  switch (action) {
+    case ACTION_TOGGLE_CYCLIC_HOLD:
+      if (pressed) toggleCyclicHold();
+      break;
+    case ACTION_TOGGLE_COLLECTIVE_HOLD:
+      if (pressed) toggleCollectiveHold();
+      break;
+    case ACTION_TOGGLE_AP:
+      if (pressed) setAPEnabled(!state.autopilot.enabled);
+      break;
+    default:
+      break;
+  }
+}
+
 void handleButtons() {
   bool dirty = false;
   // Scan through all 16 possible addresses (0-15)
@@ -77,15 +116,8 @@ void handleButtons() {
         setJoystickButton(buttonNumber - 1, buttonPressed);
         dirty = true;
         
-        // Special handling: Button index 2 (buttonNumber 3) toggles cyclic motor hold
-        if (buttonNumber == 3 && buttonPressed) {
-          toggleCyclicHold();
-        }
-        
-        // Special handling: Button index 1 (buttonNumber 2) toggles AP
-        if (buttonNumber == 2 && buttonPressed) {
-          setAPEnabled(!state.autopilot.enabled);
-        }
+        // Dispatch any built-in side-effect assigned to this button
+        performButtonAction(buttonNumber, buttonPressed);
         
         // Use DEBUG level to avoid flooding the log buffer (this is in loop)
         LOG_DEBUGF("Cyclic Button %d (addr %d): %s", 
@@ -103,6 +135,7 @@ void handleButtons() {
         bool    joySent      = (mapping > 0) ? col1Pressed : !col1Pressed; // invert when negative
         setJoystickButton(buttonNumber - 1, joySent);
         dirty = true;
+        performButtonAction(buttonNumber, joySent);
         LOG_DEBUGF("Collective Butt1 Button %d (addr %d)%s: %s",
                    buttonNumber, addr, mapping < 0 ? " [INV]" : "",
                    joySent ? "PRESSED" : "RELEASED");
@@ -121,6 +154,7 @@ void handleButtons() {
         bool    joySent      = (mapping > 0) ? col2Pressed : !col2Pressed; // invert when negative
         setJoystickButton(buttonNumber - 1, joySent);
         dirty = true;
+        performButtonAction(buttonNumber, joySent);
         LOG_DEBUGF("Collective Butt2 Button %d (addr %d)%s: %s",
                    buttonNumber, addr, mapping < 0 ? " [INV]" : "",
                    joySent ? "PRESSED" : "RELEASED");
@@ -138,6 +172,7 @@ void handleButtons() {
     // Update joystick button 9 (index 8, as buttons are 0-indexed in HID)
     setJoystickButton(8, collectiveFtrPressed);
     dirty = true;
+    performButtonAction(9, collectiveFtrPressed);
     
     // Use DEBUG level to avoid flooding the log buffer (this is in loop)
     LOG_DEBUGF("Collective FTR Button 9: %s", 

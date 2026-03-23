@@ -8,10 +8,6 @@
 static bool collectiveHeld = false;
 static bool cyclicHeld = false;
 
-// Button state tracking for debouncing (collective FTR only)
-static bool lastCollectiveFTRState = HIGH;
-static unsigned long lastCollectiveDebounceTime = 0;
-static const unsigned long DEBOUNCE_DELAY = 50;  // 50ms debounce
 
 void initSteppers() {
     // Collective motor pins
@@ -121,30 +117,8 @@ void handleSteppers() {
         digitalWrite(PIN_CYCLIC_Y_ENABLED, HIGH);
     }
     
-    // Handle collective FTR button with debouncing
-    bool collectiveFTRReading = digitalRead(PIN_COL_FTR);
-    
-    // Reset debounce timer if reading changed
-    if (collectiveFTRReading != lastCollectiveFTRState) {
-        lastCollectiveDebounceTime = currentTime;
-        lastCollectiveFTRState = collectiveFTRReading;
-    }
-    
-    // Check if button state has been stable long enough
-    if ((currentTime - lastCollectiveDebounceTime) > DEBOUNCE_DELAY) {
-        // Check for button press (transition from HIGH to LOW)
-        static bool lastCollectiveStableState = HIGH;
-        
-        if (collectiveFTRReading == LOW && lastCollectiveStableState == HIGH) {
-            // Button pressed (falling edge)
-            toggleCollectiveHold();
-            lastCollectiveStableState = LOW;
-        } else if (collectiveFTRReading == HIGH && lastCollectiveStableState == LOW) {
-            // Button released (rising edge)
-            lastCollectiveStableState = HIGH;
-        }
-    }
 }
+
 
 bool isCollectiveHeld() {
     return collectiveHeld;
