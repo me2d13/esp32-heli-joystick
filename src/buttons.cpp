@@ -7,9 +7,17 @@
 #include "state.h"
 // Button state tracking
 static bool cyclicButtonStates[16] = {false};
+static bool collectiveButt1States[16] = {false};
+static bool collectiveButt2States[16] = {false};
 static bool collectiveFtrButtonState = false;
 
 static uint8_t cyclicButtonMappings[16] = CYCLIC_BUTTONS_MAPPING;
+
+// Collective multiplexed button mappings (button number, 0 = not wired)
+// Positive = normal logic, negative = inverted logic (mounted upside-down etc.)
+// Butt1/addr2 → button 12 (inverted), Butt1/addr11 → button 10, Butt1/addr15 → button 11
+static int8_t collectiveButt1Mappings[16] = {18, 13, -12, 23, 19, 21, 16, 20, 17, 22, 0, 10, 15, 14, 0, 11};
+static int8_t collectiveButt2Mappings[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0};
 
 void initButtons() {
   LOG_INFO("Initializing button handling...");
@@ -85,14 +93,41 @@ void handleButtons() {
       }
     }
     
-    // TODO: Add collective button handling here when wired
-    // For now, we only handle cyclic buttons
-    
-    // Read collective button 1 signal
-    // bool col1Pressed = !digitalRead(PIN_COL_BUTT_1);
-    
-    // Read collective button 2 signal
-    // bool col2Pressed = !digitalRead(PIN_COL_BUTT_2);
+    // Read collective button signal 1
+    bool col1Pressed = !digitalRead(PIN_COL_BUTT_1);
+    if (col1Pressed != collectiveButt1States[addr]) {
+      collectiveButt1States[addr] = col1Pressed;
+      if (collectiveButt1Mappings[addr] != 0) {
+        int8_t  mapping      = collectiveButt1Mappings[addr];
+        uint8_t buttonNumber = (uint8_t)abs(mapping);
+        bool    joySent      = (mapping > 0) ? col1Pressed : !col1Pressed; // invert when negative
+        setJoystickButton(buttonNumber - 1, joySent);
+        dirty = true;
+        LOG_DEBUGF("Collective Butt1 Button %d (addr %d)%s: %s",
+                   buttonNumber, addr, mapping < 0 ? " [INV]" : "",
+                   joySent ? "PRESSED" : "RELEASED");
+      } else {
+        LOG_INFOF("Collective Butt1 signal (addr %d): %s", addr, col1Pressed ? "PRESSED" : "RELEASED");
+      }
+    }
+
+    // Read collective button signal 2
+    bool col2Pressed = !digitalRead(PIN_COL_BUTT_2);
+    if (col2Pressed != collectiveButt2States[addr]) {
+      collectiveButt2States[addr] = col2Pressed;
+      if (collectiveButt2Mappings[addr] != 0) {
+        int8_t  mapping      = collectiveButt2Mappings[addr];
+        uint8_t buttonNumber = (uint8_t)abs(mapping);
+        bool    joySent      = (mapping > 0) ? col2Pressed : !col2Pressed; // invert when negative
+        setJoystickButton(buttonNumber - 1, joySent);
+        dirty = true;
+        LOG_DEBUGF("Collective Butt2 Button %d (addr %d)%s: %s",
+                   buttonNumber, addr, mapping < 0 ? " [INV]" : "",
+                   joySent ? "PRESSED" : "RELEASED");
+      } else {
+        LOG_INFOF("Collective Butt2 signal (addr %d): %s", addr, col2Pressed ? "PRESSED" : "RELEASED");
+      }
+    }
   }
   
   // Handle directly-wired collective button (PIN_COL_FTR) - mapped as button 9
