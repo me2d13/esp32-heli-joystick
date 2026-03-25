@@ -3,6 +3,7 @@
 #include "joystick.h"
 #include "logger.h"
 #include "steppers.h"
+#include "buzzer.h"
 #include "ap.h"
 #include "state.h"
 // Button state tracking
@@ -17,11 +18,11 @@ static uint8_t cyclicButtonMappings[16] = CYCLIC_BUTTONS_MAPPING;
 // Positive = normal logic, negative = inverted logic (mounted upside-down etc.)
 // Butt1/addr2 → button 12 (inverted), Butt1/addr11 → button 10, Butt1/addr15 → button 11
 static int8_t collectiveButt1Mappings[16] = {18, 13, -12, 23, 19, 21, 16, 20, 17, 22, 0, 10, 15, 14, 0, 11};
-static int8_t collectiveButt2Mappings[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0};
+static int8_t collectiveButt2Mappings[16] = {30, 25, 29, 32, 28, 31, 33, -26, 27, 0, 0, 0, 24, 0, 0, 0};
 
 // Built-in action mapping: index = HID button number (1-indexed), value = ButtonAction.
 // Buttons not listed here (or ACTION_NONE) only produce HID output with no side-effect.
-static ButtonAction buttonActionMappings[33] = {
+static ButtonAction buttonActionMappings[JOYSTICK_BUTTON_COUNT] = {
   ACTION_NONE,               //  0  (unused, buttons are 1-indexed)
   ACTION_NONE,               //  1
   ACTION_TOGGLE_AP,          //  2
@@ -32,11 +33,27 @@ static ButtonAction buttonActionMappings[33] = {
   ACTION_NONE,               //  7
   ACTION_NONE,               //  8
   ACTION_TOGGLE_COLLECTIVE_HOLD, //  9 (collective FTR button)
-  // 10-32: ACTION_NONE (zero-initialised)
+  ACTION_NONE,               // 10
+  ACTION_NONE,               // 11
+  ACTION_NONE,               // 12
+  ACTION_NONE,               // 13
+  ACTION_AP_VS_PLUS100,      // 14
+  ACTION_AP_HDG_PLUS10,      // 15
+  ACTION_AP_VS_MINUS100,     // 16
+  ACTION_AP_HDG_MINUS10,     // 17
+  ACTION_NONE,               // 18
+  ACTION_AP_VS_MODE,         // 19
+  // 20-26: ACTION_NONE (zero-initialised)
+  // NOTE: index 27 is set below; partial init zeros the rest
 };
+// Index 27 cannot be set inline (array size may be 33), so patch after:
+// buttonActionMappings[27] = ACTION_AP_HDG_MODE; — done in initButtons()
 
 void initButtons() {
   LOG_INFO("Initializing button handling...");
+  
+  // Patch high-index action mappings that can't be set in the array initialiser
+  buttonActionMappings[27] = ACTION_AP_HDG_MODE;
   
   // Set address pins as OUTPUT
   pinMode(PIN_ADDR0, OUTPUT);
@@ -89,6 +106,56 @@ static void performButtonAction(uint8_t buttonNumber, bool pressed) {
       break;
     case ACTION_TOGGLE_AP:
       if (pressed) setAPEnabled(!state.autopilot.enabled);
+      break;
+    case ACTION_AP_HDG_MODE:
+      if (pressed) {
+        if (state.autopilot.horizontalMode == APHorizontalMode::HeadingHold) {
+          setAPHorizontalMode(APHorizontalMode::RollHold);  // toggle off → back to roll hold
+          beep(200);  // longer beep on disengage
+        } else {
+          setAPHorizontalMode(APHorizontalMode::HeadingHold);
+          beep(50);   // short beep on engage
+        }
+      }
+      break;
+    case ACTION_AP_VS_MODE:
+      if (pressed) {
+        if (state.autopilot.verticalMode == APVerticalMode::VerticalSpeed) {
+          setAPVerticalMode(APVerticalMode::PitchHold);     // toggle off → back to pitch hold
+          beep(200);  // longer beep on disengage
+        } else {
+          setAPVerticalMode(APVerticalMode::VerticalSpeed);
+          beep(50);   // short beep on engage
+        }
+      }
+      break;
+    case ACTION_AP_HDG_MINUS10:
+      if (pressed) {
+        state.autopilot.selectedHeading -= 10.0f;
+        if (state.autopilot.selectedHeading < 0.0f)
+          state.autopilot.selectedHeading += 360.0f;
+        LOG_DEBUGF("HDG -> %.0f", state.autopilot.selectedHeading);
+      }
+      break;
+    case ACTION_AP_HDG_PLUS10:
+      if (pressed) {
+        state.autopilot.selectedHeading += 10.0f;
+        if (state.autopilot.selectedHeading >= 360.0f)
+          state.autopilot.selectedHeading -= 360.0f;
+        LOG_DEBUGF("HDG -> %.0f", state.autopilot.selectedHeading);
+      }
+      break;
+    case ACTION_AP_VS_PLUS100:
+      if (pressed) {
+        state.autopilot.selectedVerticalSpeed += 100.0f;
+        LOG_DEBUGF("VS -> %.0f fpm", state.autopilot.selectedVerticalSpeed);
+      }
+      break;
+    case ACTION_AP_VS_MINUS100:
+      if (pressed) {
+        state.autopilot.selectedVerticalSpeed -= 100.0f;
+        LOG_DEBUGF("VS -> %.0f fpm", state.autopilot.selectedVerticalSpeed);
+      }
       break;
     default:
       break;

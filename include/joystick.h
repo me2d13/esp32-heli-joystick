@@ -5,7 +5,7 @@
 
 // Joystick configuration
 #define JOYSTICK_AXIS_COUNT 3
-#define JOYSTICK_BUTTON_COUNT 32
+#define JOYSTICK_BUTTON_COUNT 33
 
 // Axis indices
 #define AXIS_CYCLIC_X 0     // Cyclic left/right
