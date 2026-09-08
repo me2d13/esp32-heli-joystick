@@ -119,9 +119,6 @@
     <script>
         let ws;
         let lastSimData = {};
-        let selectedHeading = 0;
-        let selectedVS = 0;
-        let selectedAltitude = 0;
 
         function updateAutopilotDisplay(ap) {
             const enabled = ap.enabled ?? false;
@@ -136,16 +133,14 @@
             document.getElementById('apVsBtn').classList.toggle('on', vMode === 'vs');
 
             if (document.activeElement !== document.getElementById('hdgInput')) {
-                selectedHeading = (((ap.selectedHeading ?? 0) % 360) + 360) % 360;
-                document.getElementById('hdgInput').value = Math.round(selectedHeading);
+                const wrapped = (((ap.selectedHeading ?? 0) % 360) + 360) % 360;
+                document.getElementById('hdgInput').value = Math.round(wrapped);
             }
             if (ap.selectedVerticalSpeed !== undefined && document.activeElement !== document.getElementById('vsInput')) {
-                selectedVS = Math.round(ap.selectedVerticalSpeed);
-                document.getElementById('vsInput').value = selectedVS;
+                document.getElementById('vsInput').value = Math.round(ap.selectedVerticalSpeed);
             }
             if (ap.selectedAltitude !== undefined && document.activeElement !== document.getElementById('altInput')) {
-                selectedAltitude = Math.round(ap.selectedAltitude);
-                document.getElementById('altInput').value = selectedAltitude;
+                document.getElementById('altInput').value = Math.round(ap.selectedAltitude);
             }
 
             const centerEl = document.getElementById('apCenter');
@@ -237,45 +232,45 @@
 
         document.getElementById('hdgInput').addEventListener('click', () => {
             if (lastSimData.heading != null) {
-                selectedHeading = (((Math.round(lastSimData.heading) % 360) + 360) % 360);
-                document.getElementById('hdgInput').value = selectedHeading;
-                postAP({ selectedHeading });
+                const wrapped = (((Math.round(lastSimData.heading) % 360) + 360) % 360);
+                document.getElementById('hdgInput').value = wrapped;
+                postAP({ selectedHeading: wrapped });
             }
         });
         document.getElementById('vsInput').addEventListener('click', () => {
             if (lastSimData.verticalSpeed != null) {
-                selectedVS = Math.round(lastSimData.verticalSpeed);
-                document.getElementById('vsInput').value = selectedVS;
-                postAP({ selectedVerticalSpeed: selectedVS });
+                const vs = Math.round(lastSimData.verticalSpeed);
+                document.getElementById('vsInput').value = vs;
+                postAP({ selectedVerticalSpeed: vs });
             }
         });
         document.getElementById('altInput').addEventListener('click', () => {
             if (lastSimData.altitude != null) {
-                selectedAltitude = Math.round(lastSimData.altitude);
-                document.getElementById('altInput').value = selectedAltitude;
-                postAP({ selectedAltitude });
+                const alt = Math.round(lastSimData.altitude);
+                document.getElementById('altInput').value = alt;
+                postAP({ selectedAltitude: alt });
             }
         });
 
-        document.getElementById('hdgInput').addEventListener('change', e => { selectedHeading = parseInt(e.target.value) || 0; postAP({ selectedHeading }); });
-        document.getElementById('vsInput').addEventListener('change', e => { selectedVS = parseInt(e.target.value) || 0; postAP({ selectedVerticalSpeed: selectedVS }); });
-        document.getElementById('altInput').addEventListener('change', e => { selectedAltitude = parseInt(e.target.value) || 0; postAP({ selectedAltitude }); });
+        document.getElementById('hdgInput').addEventListener('change', e => { postAP({ selectedHeading: parseInt(e.target.value) || 0 }); });
+        document.getElementById('vsInput').addEventListener('change', e => { postAP({ selectedVerticalSpeed: parseInt(e.target.value) || 0 }); });
+        document.getElementById('altInput').addEventListener('change', e => { postAP({ selectedAltitude: parseInt(e.target.value) || 0 }); });
 
         const wrap = h => (((Math.round(h) % 360) + 360) % 360);
-        document.getElementById('hdgMinus90').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 - 90); postAP({ selectedHeading }); });
-        document.getElementById('hdgMinus10').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 - 10); postAP({ selectedHeading }); });
-        document.getElementById('hdgMinus1').addEventListener('click', () => { selectedHeading = wrap(selectedHeading - 1); postAP({ selectedHeading }); });
-        document.getElementById('hdgPlus1').addEventListener('click', () => { selectedHeading = wrap(selectedHeading + 1); postAP({ selectedHeading }); });
-        document.getElementById('hdgPlus10').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 + 10); postAP({ selectedHeading }); });
-        document.getElementById('hdgPlus90').addEventListener('click', () => { selectedHeading = wrap(Math.round(selectedHeading / 10) * 10 + 90); postAP({ selectedHeading }); });
+        document.getElementById('hdgMinus90').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap(Math.round(parseInt(el.value) || 0) / 10) * 10 - 90 }); });
+        document.getElementById('hdgMinus10').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap(Math.round(parseInt(el.value) || 0) / 10) * 10 - 10 }); });
+        document.getElementById('hdgMinus1').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap((parseInt(el.value) || 0) - 1) }); });
+        document.getElementById('hdgPlus1').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap((parseInt(el.value) || 0) + 1) }); });
+        document.getElementById('hdgPlus10').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap(Math.round(parseInt(el.value) || 0) / 10) * 10 + 10 }); });
+        document.getElementById('hdgPlus90').addEventListener('click', () => { const el = document.getElementById('hdgInput'); postAP({ selectedHeading: wrap(Math.round(parseInt(el.value) || 0) / 10) * 10 + 90 }); });
 
-        document.getElementById('vsMinus100').addEventListener('click', () => { selectedVS = Math.floor((selectedVS - 1) / 100) * 100; postAP({ selectedVerticalSpeed: selectedVS }); });
-        document.getElementById('vsPlus100').addEventListener('click', () => { selectedVS = Math.ceil((selectedVS + 1) / 100) * 100; postAP({ selectedVerticalSpeed: selectedVS }); });
+        document.getElementById('vsMinus100').addEventListener('click', () => { const el = document.getElementById('vsInput'); postAP({ selectedVerticalSpeed: Math.floor(((parseInt(el.value) || 0) - 1) / 100) * 100 }); });
+        document.getElementById('vsPlus100').addEventListener('click', () => { const el = document.getElementById('vsInput'); postAP({ selectedVerticalSpeed: Math.ceil(((parseInt(el.value) || 0) + 1) / 100) * 100 }); });
 
-        document.getElementById('altMinus1000').addEventListener('click', () => { selectedAltitude = Math.round(selectedAltitude / 100) * 100 - 1000; postAP({ selectedAltitude }); });
-        document.getElementById('altMinus100').addEventListener('click', () => { selectedAltitude = Math.floor((selectedAltitude - 1) / 100) * 100; postAP({ selectedAltitude }); });
-        document.getElementById('altPlus100').addEventListener('click', () => { selectedAltitude = Math.ceil((selectedAltitude + 1) / 100) * 100; postAP({ selectedAltitude }); });
-        document.getElementById('altPlus1000').addEventListener('click', () => { selectedAltitude = Math.round(selectedAltitude / 100) * 100 + 1000; postAP({ selectedAltitude }); });
+        document.getElementById('altMinus1000').addEventListener('click', () => { const el = document.getElementById('altInput'); postAP({ selectedAltitude: Math.round((parseInt(el.value) || 0) / 100) * 100 - 1000 }); });
+        document.getElementById('altMinus100').addEventListener('click', () => { const el = document.getElementById('altInput'); postAP({ selectedAltitude: Math.floor(((parseInt(el.value) || 0) - 1) / 100) * 100 }); });
+        document.getElementById('altPlus100').addEventListener('click', () => { const el = document.getElementById('altInput'); postAP({ selectedAltitude: Math.ceil(((parseInt(el.value) || 0) + 1) / 100) * 100 }); });
+        document.getElementById('altPlus1000').addEventListener('click', () => { const el = document.getElementById('altInput'); postAP({ selectedAltitude: Math.round((parseInt(el.value) || 0) / 100) * 100 + 1000 }); });
 
         connect();
     </script>
