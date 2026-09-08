@@ -129,23 +129,51 @@ static void processPacket(const uint8_t* packet) {
 }
 
 static int16_t mapSensorToAxis(uint16_t sensorValue, uint16_t sensorMin, uint16_t sensorMax, bool invert) {
-    // Clamp sensor value to calibration range
-    if (sensorValue < sensorMin) {
-        sensorValue = sensorMin;
+    const int32_t SENSOR_RESOLUTION = 4096;
+
+    int32_t directDist = abs((int32_t)sensorMax - (int32_t)sensorMin);
+    int32_t wrapDist = SENSOR_RESOLUTION - directDist;
+
+    int32_t unwrappedValue = sensorValue;
+    int32_t unwrappedMin = sensorMin;
+    int32_t unwrappedMax = sensorMax;
+
+    // Detect if the range wraps around the 0/4096 boundary
+    if (wrapDist < directDist) {
+        int32_t midpoint = (sensorMin + sensorMax) / 2;
+        
+        if (sensorMin > sensorMax) {
+            // Increasing wrap: sensorMin (e.g. 3800) -> 4095 -> 0 -> sensorMax (e.g. 500)
+            if (sensorValue <= midpoint) {
+                unwrappedValue += SENSOR_RESOLUTION;
+            }
+            unwrappedMax += SENSOR_RESOLUTION;
+        } else {
+            // Decreasing wrap: sensorMin (e.g. 70) -> 0 -> 4095 -> sensorMax (e.g. 2500)
+            if (sensorValue <= midpoint) {
+                unwrappedValue += SENSOR_RESOLUTION;
+            }
+            unwrappedMin += SENSOR_RESOLUTION;
+        }
     }
-    if (sensorValue > sensorMax) {
-        sensorValue = sensorMax;
+
+    // Clamp unwrappedValue to calibration range [unwrappedMin, unwrappedMax]
+    if (unwrappedMin <= unwrappedMax) {
+        if (unwrappedValue < unwrappedMin) unwrappedValue = unwrappedMin;
+        if (unwrappedValue > unwrappedMax) unwrappedValue = unwrappedMax;
+    } else {
+        if (unwrappedValue > unwrappedMin) unwrappedValue = unwrappedMin;
+        if (unwrappedValue < unwrappedMax) unwrappedValue = unwrappedMax;
     }
-    
-    // Map from sensor range to joystick axis range (0 to 10000)
-    // Using long to avoid overflow during calculation
-    long mapped = (long)(sensorValue - sensorMin) * (AXIS_MAX - AXIS_MIN) / (sensorMax - sensorMin) + AXIS_MIN;
-    
-    // Apply inversion if needed
+
+    // Map from unwrapped range to joystick axis range (AXIS_MIN to AXIS_MAX)
+    int32_t mapped = (unwrappedValue - unwrappedMin) * (AXIS_MAX - AXIS_MIN) / (unwrappedMax - unwrappedMin) + AXIS_MIN;
+
+    // Apply inversion if requested
     if (invert) {
         mapped = AXIS_MAX - (mapped - AXIS_MIN);
     }
-    
+
     return (int16_t)mapped;
 }
 

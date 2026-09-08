@@ -87,9 +87,9 @@
 // sensor values, then set these constants accordingly.
 
 // Cyclic X axis (left/right) calibration
-#define CYCLIC_X_SENSOR_MIN   00     // Sensor value at full left position
-#define CYCLIC_X_SENSOR_MAX   1700   // Sensor value at full right position
-#define CYCLIC_X_INVERT       true   // Set to true to invert axis direction
+#define CYCLIC_X_SENSOR_MIN   70     // Sensor value at full left position
+#define CYCLIC_X_SENSOR_MAX   2500   // Sensor value at full right position
+#define CYCLIC_X_INVERT       false  // Set to true to invert axis direction
 
 // Cyclic Y axis (forward/back) calibration
 #define CYCLIC_Y_SENSOR_MIN   630    // Sensor value at full back position

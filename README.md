@@ -488,6 +488,31 @@ esp32-heli-joystick/
 - Check the LED brightness setting in config.h
 - Some boards may have different RGB LED configurations
 
+### Joystick device missing & WiFi not connecting (Stuck in ROM Bootloader mode)
+
+**Symptoms:**
+- Joystick device (`esp-heli-v1`) does not appear in Windows (`joy.cpl`).
+- ESP32 does not connect to WiFi (no DHCP activity, Web UI unreachable).
+- Both USB ports show up as COM ports in Device Manager / PlatformIO (specifically, native USB shows up as `USB Serial / JTAG Controller` with `VID:PID 303A:1001`).
+
+**Cause:**
+The ESP32-S3 chip got stuck in hardware ROM Bootloader mode (often due to a power-on glitch or interrupted upload). In this state, application code in Flash memory does not execute at all, so neither WiFi nor the native USB HID Joystick controller initializes.
+
+**Software Reset Solution:**
+If the hardware Reset/EN button is enclosed or hard to reach, you can trigger a hardware reset via software over the UART USB port (the COM port connected to the onboard CH343/CH340 chip, e.g. `COM12`):
+
+```bash
+# Using esptool to pulse RTS pin and hard reset the ESP32-S3:
+python -m esptool --port COM12 chip_id
+```
+
+Or using PlatformIO device monitor:
+```bash
+pio device monitor --port COM12
+```
+
+Connecting to the UART COM port toggles the RTS/DTR lines on the USB-to-UART bridge chip, sending a hardware reset pulse to the ESP32-S3 `EN` pin. This forces the chip out of ROM Bootloader mode and boots your application firmware normally from Flash.
+
 ### Cyclic axes not responding
 
 - Check the wiring between sensor board and joystick controller (TX→RX, GND→GND)
